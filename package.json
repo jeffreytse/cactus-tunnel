@@ -1,0 +1,24 @@
+{
+  "name": "cactus-tunnel",
+  "version": "0.1.0",
+  "description": "A tcp tunnel over browser",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeffreytse/cactus-tunnel.git"
+  },
+  "author": "jeffreytse",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jeffreytse/cactus-tunnel/issues"
+  },
+  "homepage": "https://github.com/jeffreytse/cactus-tunnel#readme",
+  "devDependencies": {
+    "@types/node": "^17.0.8",
+    "typescript": "^4.5.4"
+  }
+}
