@@ -1,0 +1,17 @@
+# editorconfig.org
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = spaces
+
+# Config for JavaScript and TypeScript.
+[**.{js,ts}]
+indent_size = 2
+
+# Config for YAML and JSON.
+[**.{yml,yaml,json}]
+indent_size = 2
