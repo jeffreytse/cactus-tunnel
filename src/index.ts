@@ -1,4 +1,5 @@
-import server from './server';
+import { createWebServer } from "./core";
+import createServer from "./server";
+import createClient from "./client";
 
-server.startServer(8800);
-
+export { createWebServer, createServer, createClient };

@@ -1,18 +1,62 @@
-import http from 'http';
+import { createConnection } from "net";
+import http from "http";
+import pump from "pump";
+import url from "url";
+import expressWs, { WebsocketRequestHandler } from "express-ws";
+import WebSocketStream from "websocket-stream";
+import { createLogger } from "./utils";
 
-const requestListener: http.RequestListener = function (req, res) {
-  console.log(req.headers);
-  res.end('Hello, World!');
-}
+const logger = createLogger({ label: "cactus-tunnel:server" });
 
-const startServer = function (port: number): http.Server {
-  const httpServer = http.createServer(requestListener);
+const getTunnelInfo = function (req: http.IncomingMessage) {
+  const result = url.parse(req.url || "", true);
+  const target = (result?.query?.target as string) || "";
+  const [hostname, port] = target.split(":");
 
-  httpServer.listen(port, function () {
-    console.log(`Http Server is running on port ${port}...`);
+  if (isNaN(parseInt(port)) || hostname.length === 0) {
+    return;
+  }
+
+  return { hostname, port: +port };
+};
+
+const wsTunnelRequestHandler: WebsocketRequestHandler = function (ws, req) {
+  const tunnelInfo = getTunnelInfo(req);
+
+  if (!tunnelInfo) {
+    logger.error("invalid tunnel info!");
+    return;
+  }
+
+  // convert ws instance to stream
+  const local = WebSocketStream(ws, {
+    binary: true,
   });
 
-  return httpServer;
-}
+  logger.info(
+    "connecting to remote target: " +
+      tunnelInfo.hostname +
+      ":" +
+      tunnelInfo.port
+  );
 
-export default { startServer }
+  const remote = createConnection(tunnelInfo.port, tunnelInfo.hostname);
+  remote.on("error", logger.error);
+
+  const onStreamError: pump.Callback = (err) => {
+    if (err) logger.error(err);
+  };
+
+  pump(local, remote, onStreamError);
+  pump(remote, local, onStreamError);
+};
+
+const createServer = function (app: expressWs.Application) {
+  app.ws("/tunnel", wsTunnelRequestHandler);
+  app.get("/", (req, res) => {
+    res.render("index");
+  });
+  return app;
+};
+
+export default createServer;
