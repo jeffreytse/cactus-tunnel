@@ -5,11 +5,13 @@ import url from "url";
 import pump from "pump";
 import { BridgeCtrlData } from "./bridge";
 import { sleep, createLogger } from "./utils";
+import config from "./config";
 
-const logger = createLogger({ label: "cactus-tunnel:client" });
+export const logger = createLogger({ label: "cactus-tunnel:client" });
 
 type Proxy = {
   port: number;
+  hostname?: string;
   server: string;
   target: string;
   tcpServer: Server | null;
@@ -24,9 +26,10 @@ type Proxy = {
 };
 
 const proxy: Proxy = {
-  port: parseInt(process.env.PROXY_PORT || "10022"),
-  server: process.env.PROXY_SERVER || "auto",
-  target: process.env.PROXY_TARGET || "auto",
+  port: config.client.port,
+  hostname: config.client.hostname,
+  server: config.client.server,
+  target: config.client.target,
   tcpServer: null,
   clients: [],
   bridge: {
@@ -121,7 +124,7 @@ const tcpConnectionHandler: (local: Socket) => void = async (local) => {
   setTimeout(pipe, 100);
 };
 
-const createProxyServer = (port: number) => {
+const createProxyServer = (opt: { port: number; hostname?: string }) => {
   // destroy old proxy server
   if (proxy.tcpServer) {
     proxy.clients.forEach((client) => client.destroy());
@@ -130,18 +133,25 @@ const createProxyServer = (port: number) => {
       logger.info("closed old proxy server");
       proxy.tcpServer?.unref();
       proxy.tcpServer = null;
-      createProxyServer(port);
+      createProxyServer(opt);
     });
     return;
   }
 
   // Create TCP proxy server
-  proxy.tcpServer = createServer();
-  proxy.tcpServer.on("connection", (local) => {
+  const server = createServer();
+  proxy.tcpServer = server;
+  server.on("connection", (local) => {
     tcpConnectionHandler(local);
   });
-  proxy.tcpServer.listen(port, () => {
-    logger.info(`TCP server listening on port ${port}`);
+  server.listen(opt.port, opt.hostname, () => {
+    const addressInfo = server?.address();
+    if (typeof addressInfo === "string") {
+      return;
+    }
+    logger.info(
+      `TCP Server running at tcp://${addressInfo?.address}:${addressInfo?.port}`
+    );
   });
 };
 
@@ -189,7 +199,7 @@ const dataHandler: WebsocketRequestHandler = (ws) => {
   logger.info("bridge data tunnel connected!");
 };
 
-const createClient = function (app?: expressWs.Application) {
+export const create = function (app?: expressWs.Application) {
   const isWebBridgeMode = !!app;
   if (isWebBridgeMode) {
     proxy.mode = "bridge";
@@ -199,8 +209,6 @@ const createClient = function (app?: expressWs.Application) {
     proxy.mode = "default";
   }
   logger.info(`client mode: ${proxy.mode}`);
-  createProxyServer(proxy.port);
+  createProxyServer({ port: proxy.port, hostname: proxy.hostname });
   return app;
 };
-
-export default createClient;

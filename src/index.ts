@@ -1,5 +1,9 @@
-import { createWebServer } from "./core";
-import createServer from "./server";
-import createClient from "./client";
+import * as ProxyCore from "./core";
+import * as ProxyServer from "./server";
+import * as ProxyClient from "./client";
 
-export { createWebServer, createServer, createClient };
+export default {
+  createWebServer: ProxyCore.createWebServer,
+  createServer: ProxyServer.create,
+  createClient: ProxyClient.create,
+};

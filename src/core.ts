@@ -1,10 +1,12 @@
 import express from "express";
 import expressWs from "express-ws";
-import { createLogger } from "./utils";
+import http from "http";
 
-const logger = createLogger({ label: "cactus-tunnel:core" });
-
-export const createWebServer = function (port: number): expressWs.Application {
+export const createWebServer = function (opt: {
+  port: number;
+  hostname: string;
+  callback?: (server: http.Server) => void
+}): expressWs.Application {
   const app: express.Application = express();
 
   // extend express app with app.ws()
@@ -30,8 +32,8 @@ export const createWebServer = function (port: number): expressWs.Application {
     );
   });
 
-  app.listen(port, () => {
-    logger.info(`listening on port ${port}`);
+  const server = app.listen(opt.port, opt.hostname, () => {
+    opt.callback && opt.callback(server);
   });
 
   return app as expressWs.Application;

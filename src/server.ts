@@ -6,7 +6,7 @@ import expressWs, { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
 import { createLogger } from "./utils";
 
-const logger = createLogger({ label: "cactus-tunnel:server" });
+export const logger = createLogger({ label: "cactus-tunnel:server" });
 
 const getTunnelInfo = function (req: http.IncomingMessage) {
   const result = url.parse(req.url || "", true);
@@ -51,12 +51,11 @@ const wsTunnelRequestHandler: WebsocketRequestHandler = function (ws, req) {
   pump(remote, local, onStreamError);
 };
 
-const createServer = function (app: expressWs.Application) {
+export const create = function (app: expressWs.Application) {
   app.ws("/tunnel", wsTunnelRequestHandler);
-  app.get("/", (req, res) => {
+  app.get("/", (_, res) => {
     res.render("index");
   });
   return app;
 };
 
-export default createServer;

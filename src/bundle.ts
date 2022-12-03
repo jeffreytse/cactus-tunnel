@@ -2,9 +2,10 @@
 
 import url from "url";
 import { createBridge } from "./bridge";
+import config from "./config";
 
 const result = url.parse(window.location.href, true);
-const localPort = parseInt(result.port || "0") + 1;
+const localPort = config.bridge.port;
 const localUrl: string =
   (result?.query?.localUrl as string) || `localhost:${localPort}`;
 
