@@ -21,6 +21,9 @@ const getTunnelInfo = function (req: http.IncomingMessage) {
 };
 
 const wsTunnelRequestHandler: WebsocketRequestHandler = function (ws, req) {
+  const remoteIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  logger.info(`websocket request from: ${remoteIP}`);
+
   const tunnelInfo = getTunnelInfo(req);
 
   if (!tunnelInfo) {
@@ -58,4 +61,3 @@ export const create = function (app: expressWs.Application) {
   });
   return app;
 };
-
