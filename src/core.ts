@@ -1,6 +1,7 @@
 import express from "express";
 import expressWs from "express-ws";
 import http from "http";
+import pkg from "../package.json";
 
 export type HostAddressInfo = {
   port: number;
@@ -32,7 +33,8 @@ export const createWebServer = function (
     res.setHeader("Content-Type", "application/json");
     res.end(
       JSON.stringify({
-        version: `${process.env.npm_package_version}`,
+        name: pkg.name,
+        version: pkg.version,
       })
     );
   });
