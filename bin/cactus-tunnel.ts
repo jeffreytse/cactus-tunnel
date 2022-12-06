@@ -1,6 +1,8 @@
+#!/usr/bin/env node
+
 import commander from "commander";
-import cactusTunnel from "./";
-import config from "./config";
+import cactusTunnel from "../src/";
+import config from "../src/config";
 import pkg from "../package.json";
 
 const program = new commander.Command();
@@ -35,10 +37,8 @@ program
     "tunnel client listening hostname",
     config.client.hostname
   )
-  .option(
-    "-b, --bridge-mode",
-    "enable tunnel bridge mode",
-  )
+  .option("-b, --bridge-mode", "enable tunnel bridge mode")
+  .option("-nb, --no-browser", "disable auto open browser when in bridge mode")
   .option(
     "-bp, --bridge-port <port>",
     "tunnel bridge listening port",
@@ -50,19 +50,35 @@ program
     "tunnel bridge listening hostname",
     config.bridge.hostname
   )
+  .option("-v, --verbose", "enable verbose output")
   .action((server, target, options) => {
-    cactusTunnel.createClient({
+    const client = cactusTunnel.createClient({
       listen: {
         port: options.port,
         hostname: options.hostname,
       },
-      bridge: options.bridgeMode ? {
-        port: options.bridgePort,
-        hostname: options.bridgeHostname,
-      } : undefined,
+      bridge: options.bridgeMode
+        ? {
+            port: options.bridgePort,
+            hostname: options.bridgeHostname,
+          }
+        : undefined,
       server,
       target,
+      logger: {
+        silent: options.verbose ? false : true,
+      },
     });
+    console.info(
+      `client listening on: tcp://${options.hostname}:${options.port}`
+    );
+    if (options.bridgeMode) {
+      const url = `http://${options.bridgeHostname}:${options.bridgePort}`;
+      console.info(`bridge listening on: ${url}`);
+      if (!options.noBrowser) {
+        client.autoOpenBridge(url);
+      }
+    }
   });
 
 program
@@ -79,13 +95,20 @@ program
     "tunnel server listening hostname",
     config.server.hostname
   )
+  .option("-v, --verbose", "enable verbose output")
   .action((options) => {
     cactusTunnel.createServer({
       listen: {
         port: options.port,
         hostname: options.hostname,
       },
+      logger: {
+        silent: options.verbose ? false : true,
+      },
     });
+    console.info(
+      `server listening on: http://${options.hostname}:${options.port}`
+    );
   });
 
 program.parse();
