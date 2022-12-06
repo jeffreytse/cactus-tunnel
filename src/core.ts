@@ -47,5 +47,7 @@ export const createWebServer = function (
     ? app.listen(opt.port, opt.hostname, cb)
     : app.listen(opt.port, cb);
 
+  app.set("server", server);
+
   return app as expressWs.Application;
 };

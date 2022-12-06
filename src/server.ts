@@ -94,8 +94,11 @@ export const create = function (opt: ServerOptions) {
   });
   app.ws("/tunnel", wsTunnelRequestHandler);
 
+  const close = () => app.get("server")?.close();
+
   return {
     app,
+    close,
     opt: serverOptions,
   };
 };

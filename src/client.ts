@@ -6,6 +6,7 @@ import pump from "pump";
 import { createWebServer, HostAddressInfo } from "./core";
 import { BridgeCtrlData } from "./bridge";
 import { sleep, createLogger, LoggerOptions, assignDeep } from "./utils";
+import open from "open";
 
 const logger = createLogger({ label: "cactus-tunnel:client" });
 
@@ -211,6 +212,28 @@ const pageHandler: RequestHandler = (_, res) => {
   res.render("index");
 };
 
+const isBridgeOpened = () => {
+  return clientMeta.bridge.status !== "preparing";
+};
+
+const getBridgeUrl = () => {
+  const hostname = clientOptions.bridge?.hostname || "localhost";
+  return `http://${hostname}:${clientOptions.bridge?.port}`;
+};
+
+const autoOpenBridge = async (url = getBridgeUrl(), retries = 6) => {
+  let time = 0;
+  while (!isBridgeOpened() && ++time < retries) {
+    await sleep(500);
+  }
+  if (!isBridgeOpened()) {
+    logger.info(`auto opening bridge ${url}`);
+    open(url);
+    return true;
+  }
+  return false;
+};
+
 export const create = (opt: ClientOptions) => {
   assignDeep(clientOptions, opt);
 
@@ -241,12 +264,22 @@ export const create = (opt: ClientOptions) => {
     app.ws("/data", dataHandler);
     app.get("/", pageHandler);
   }
+
   logger.info(`tunnel mode: ${clientMeta.mode}`);
-  createProxyServer(opt.listen);
+  const server = createProxyServer(opt.listen);
+
+  const close = () => {
+    server?.close();
+    app?.get("server")?.close();
+  };
 
   return {
     app,
     opt: clientOptions,
     meta: clientMeta,
+    close,
+    isBridgeOpened,
+    autoOpenBridge,
+    getBridgeUrl,
   };
 };
