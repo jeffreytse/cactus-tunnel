@@ -17,7 +17,7 @@ export type BridgeCtrlData =
     };
 
 type Bridge = {
-  local: {
+  client: {
     ctrl: WebSocketStream.WebSocket | null;
     data: WebSocketStream.WebSocket | null;
   };
@@ -25,7 +25,7 @@ type Bridge = {
 };
 
 const bridge: Bridge = {
-  local: {
+  client: {
     ctrl: null,
     data: null,
   },
@@ -35,69 +35,69 @@ const bridge: Bridge = {
 const connectToRemote = (connStr: string) => {
   logger.info(`connecting to ${connStr}...`);
 
-  const local = WebSocketStream(bridge.local.data, {
+  const client = WebSocketStream(bridge.client.data, {
     binary: true,
   });
-  const remote = WebSocketStream(connStr, {
+  const server = WebSocketStream(connStr, {
     binary: true,
   });
 
-  remote
+  server
     .on("connect", () => {
       bridge.status = "connected";
-      logger.info(`remote connected!`);
+      logger.info(`server connected!`);
     })
     .on("error", (err: string) => {
-      logger.error(`remote error: ${err}!`);
+      logger.error(`server error: ${err}!`);
     })
     .on("close", (err: string) => {
       if (err) {
-        logger.error(`remote error: ${err}!`);
+        logger.error(`server error: ${err}!`);
       }
       bridge.status = "disconnected";
-      logger.info(`remote is closing!`);
+      logger.info(`server closed!`);
     });
 
   const onStreamError: pump.Callback = (/* err */) => {
     bridge.status = "disconnected";
 
-    if (bridge.local.ctrl) {
-      bridge.local.ctrl.close();
+    if (bridge.client.ctrl) {
+      bridge.client.ctrl.close();
     }
-    if (bridge.local.data) {
-      bridge.local.data.close();
+    if (bridge.client.data) {
+      bridge.client.data.close();
     }
 
     logger.error("Tunnel stream error!");
   };
 
-  pump(local, remote, onStreamError);
-  pump(remote, local, onStreamError);
+  pump(client, server, onStreamError);
+  pump(server, client, onStreamError);
 
   const ctrlData: BridgeCtrlData = { type: "connected" };
-  bridge.local.ctrl?.send(JSON.stringify(ctrlData));
+  bridge.client.ctrl?.send(JSON.stringify(ctrlData));
 
   logger.info(`tunnel connected! ${connStr}`);
 };
 
-const openCtrlTunnel = (localUrl: string) => {
-  const ws = WebSocketStream(localUrl + "/ctrl");
-  bridge.local.ctrl = ws.socket;
+const openCtrlTunnel = (clientUrl: string) => {
+  const ws = WebSocketStream(clientUrl + "/ctrl");
+  bridge.client.ctrl = ws.socket;
   ws.on("connect", () => {
-    logger.info("local ctrl connected!");
-    openDataTunnel(localUrl);
+    logger.info("client ctrl tunnel connected!");
+    openDataTunnel(clientUrl);
   })
     .on("error", () => {
-      logger.error(`local ctrl error!`);
-      bridge.local.ctrl?.close();
+      logger.error(`client ctrl tunnel error!`);
+      bridge.client.ctrl?.close();
     })
     .on("close", () => {
       bridge.status = "disconnected";
-      logger.info(`local ctrl is closing!`);
+      logger.info(`client ctrl tunnel closed!`);
     })
     .on("data", (data: string) => {
       const ctrlData: BridgeCtrlData = JSON.parse(data.toString());
-      logger.info(`local ctrl data: ${ctrlData}!`);
+      logger.info(`client ctrl data: ${ctrlData}!`);
       switch (ctrlData.type) {
         case "connect":
           connectToRemote(ctrlData.data.connStr);
@@ -106,30 +106,30 @@ const openCtrlTunnel = (localUrl: string) => {
     });
 };
 
-const openDataTunnel = (localUrl: string) => {
-  const ws = WebSocketStream(localUrl + "/data");
-  bridge.local.data = ws.socket;
+const openDataTunnel = (clientUrl: string) => {
+  const ws = WebSocketStream(clientUrl + "/data");
+  bridge.client.data = ws.socket;
   ws.on("connect", () => {
     bridge.status = "waiting";
-    logger.info("local data connected!");
+    logger.info("client data tunnel connected!");
   })
     .on("error", (err: string) => {
-      logger.error(`local data error! ${err}`);
-      bridge.local.data?.close();
+      logger.error(`client data tunnel error! ${err}`);
+      bridge.client.data?.close();
     })
     .on("close", (err: string) => {
       bridge.status = "disconnected";
       if (err) {
-        logger.error(`local data error: ${err}!`);
+        logger.error(`client data tunnel error: ${err}!`);
       }
-      logger.info(`local data is closing!`);
+      logger.info(`client data tunnel closed!`);
     });
 };
 
-const connectToLocal = (localUrl: string) => {
-  logger.info(`connect to local...`);
+const connectToClient = (clientUrl: string) => {
+  logger.info(`connect to client...`);
   bridge.status = "waiting";
-  openCtrlTunnel(localUrl);
+  openCtrlTunnel(clientUrl);
 };
 
 const checkConnection = (callback?: () => void) => {
@@ -142,7 +142,7 @@ const checkConnection = (callback?: () => void) => {
   func();
 };
 
-export const createBridge = (localUrl: string): void => {
+export const createBridge = (clientUrl: string): void => {
   const hasWebSocket = "WebSocket" in window;
 
   if (!hasWebSocket) {
@@ -150,5 +150,5 @@ export const createBridge = (localUrl: string): void => {
     return;
   }
 
-  checkConnection(() => connectToLocal(localUrl));
+  checkConnection(() => connectToClient(clientUrl));
 };
