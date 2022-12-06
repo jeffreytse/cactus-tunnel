@@ -18,8 +18,8 @@ export type BridgeCtrlData =
 
 type Bridge = {
   client: {
-    ctrl: WebSocketStream.WebSocket | null;
-    data: WebSocketStream.WebSocket | null;
+    ctrl: WebSocketStream.WebSocketDuplex | null;
+    data: WebSocketStream.WebSocketDuplex | null;
   };
   status: "disconnected" | "waiting" | "connected";
 };
@@ -35,7 +35,7 @@ const bridge: Bridge = {
 const connectToRemote = (connStr: string) => {
   logger.info(`connecting to ${connStr}...`);
 
-  const client = WebSocketStream(bridge.client.data, {
+  const client = WebSocketStream(bridge.client.data?.socket, {
     binary: true,
   });
   const server = WebSocketStream(connStr, {
@@ -54,50 +54,43 @@ const connectToRemote = (connStr: string) => {
       if (err) {
         logger.error(`server error: ${err}!`);
       }
-      bridge.status = "disconnected";
+      bridge.client.data?.destroy();
       logger.info(`server closed!`);
     });
 
   const onStreamError: pump.Callback = (/* err */) => {
-    bridge.status = "disconnected";
-
-    if (bridge.client.ctrl) {
-      bridge.client.ctrl.close();
-    }
-    if (bridge.client.data) {
-      bridge.client.data.close();
-    }
-
-    logger.error("Tunnel stream error!");
+    logger.error("tunnel stream error!");
   };
 
   pump(client, server, onStreamError);
   pump(server, client, onStreamError);
 
   const ctrlData: BridgeCtrlData = { type: "connected" };
-  bridge.client.ctrl?.send(JSON.stringify(ctrlData));
+  bridge.client.ctrl?.socket.send(JSON.stringify(ctrlData));
 
   logger.info(`tunnel connected! ${connStr}`);
 };
 
 const openCtrlTunnel = (clientUrl: string) => {
   const ws = WebSocketStream(clientUrl + "/ctrl");
-  bridge.client.ctrl = ws.socket;
+  bridge.client.ctrl = ws;
   ws.on("connect", () => {
+    if (!!bridge.client.ctrl && !!bridge.client.data) {
+      bridge.status = "waiting";
+    }
     logger.info("client ctrl tunnel connected!");
-    openDataTunnel(clientUrl);
   })
     .on("error", () => {
       logger.error(`client ctrl tunnel error!`);
-      bridge.client.ctrl?.close();
     })
     .on("close", () => {
+      bridge.client.ctrl = null;
       bridge.status = "disconnected";
       logger.info(`client ctrl tunnel closed!`);
     })
     .on("data", (data: string) => {
       const ctrlData: BridgeCtrlData = JSON.parse(data.toString());
-      logger.info(`client ctrl data: ${ctrlData}!`);
+      logger.info(`client ctrl data: ${data.toString()}!`);
       switch (ctrlData.type) {
         case "connect":
           connectToRemote(ctrlData.data.connStr);
@@ -108,16 +101,18 @@ const openCtrlTunnel = (clientUrl: string) => {
 
 const openDataTunnel = (clientUrl: string) => {
   const ws = WebSocketStream(clientUrl + "/data");
-  bridge.client.data = ws.socket;
+  bridge.client.data = ws;
   ws.on("connect", () => {
-    bridge.status = "waiting";
+    if (!!bridge.client.ctrl && !!bridge.client.data) {
+      bridge.status = "waiting";
+    }
     logger.info("client data tunnel connected!");
   })
     .on("error", (err: string) => {
       logger.error(`client data tunnel error! ${err}`);
-      bridge.client.data?.close();
     })
     .on("close", (err: string) => {
+      bridge.client.data = null;
       bridge.status = "disconnected";
       if (err) {
         logger.error(`client data tunnel error: ${err}!`);
@@ -128,8 +123,9 @@ const openDataTunnel = (clientUrl: string) => {
 
 const connectToClient = (clientUrl: string) => {
   logger.info(`connect to client...`);
-  bridge.status = "waiting";
-  openCtrlTunnel(clientUrl);
+  bridge.status = "disconnected";
+  bridge.client.ctrl || openCtrlTunnel(clientUrl);
+  bridge.client.data || openDataTunnel(clientUrl);
 };
 
 const checkConnection = (callback?: () => void) => {
