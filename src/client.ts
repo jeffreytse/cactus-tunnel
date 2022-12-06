@@ -23,7 +23,7 @@ type ClientMeta = {
     ctrl: WebSocketStream.WebSocket | null;
     data: WebSocketStream.WebSocket | null;
     origin: string;
-    status: "waiting" | "connected";
+    status: "preparing" | "waiting" | "connected";
   };
   mode: "direct" | "bridge";
 };
@@ -46,7 +46,7 @@ const clientMeta: ClientMeta = {
     ctrl: null,
     data: null,
     origin: "",
-    status: "waiting",
+    status: "preparing",
   },
   mode: "direct",
 };
@@ -162,7 +162,8 @@ const ctrlHandler: WebsocketRequestHandler = (ws, req) => {
 
   clientMeta.bridge.ctrl = ws;
   clientMeta.bridge.origin = req.headers.origin || "";
-  clientMeta.bridge.status = "waiting";
+  clientMeta.bridge.status =
+    clientMeta.bridge.ctrl && clientMeta.bridge.data ? "waiting" : "preparing";
 
   ws.on("message", (data: string) => {
     const ctrlData: BridgeCtrlData = JSON.parse(data);
@@ -176,7 +177,7 @@ const ctrlHandler: WebsocketRequestHandler = (ws, req) => {
 
   ws.on("close", () => {
     clientMeta.bridge.ctrl = null;
-    clientMeta.bridge.status = "waiting";
+    clientMeta.bridge.status = "preparing";
     logger.info("bridge ctrl tunnel disconnected!");
   });
 
@@ -189,10 +190,12 @@ const dataHandler: WebsocketRequestHandler = (ws) => {
   }
 
   clientMeta.bridge.data = ws;
+  clientMeta.bridge.status =
+    clientMeta.bridge.ctrl && clientMeta.bridge.data ? "waiting" : "preparing";
 
   ws.on("close", () => {
     clientMeta.bridge.data = null;
-    clientMeta.bridge.status = "waiting";
+    clientMeta.bridge.status = "preparing";
     logger.info("bridge data tunnel disconnected!");
   });
 
@@ -201,6 +204,10 @@ const dataHandler: WebsocketRequestHandler = (ws) => {
 
 const pageHandler: RequestHandler = (_, res) => {
   res.render("index");
+};
+
+const getBridgeStatus = () => {
+  return clientMeta.bridge.status;
 };
 
 export const create = (opt: ClientOptions) => {
@@ -228,4 +235,6 @@ export const create = (opt: ClientOptions) => {
   }
   logger.info(`tunnel mode: ${clientMeta.mode}`);
   createProxyServer(opt.listen);
+
+  return { getBridgeStatus };
 };
