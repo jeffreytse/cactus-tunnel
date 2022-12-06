@@ -1,19 +1,20 @@
 import { RequestHandler } from "express";
-import { WebsocketRequestHandler } from "express-ws";
+import expressWs, { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
 import { createServer, Server, Socket } from "net";
 import pump from "pump";
 import { createWebServer, HostAddressInfo } from "./core";
 import { BridgeCtrlData } from "./bridge";
-import { sleep, createLogger } from "./utils";
+import { sleep, createLogger, LoggerOptions, assignDeep } from "./utils";
 
-export const logger = createLogger({ label: "cactus-tunnel:client" });
+const logger = createLogger({ label: "cactus-tunnel:client" });
 
 type ClientOptions = {
   listen: HostAddressInfo;
   server: string;
   target: string;
   bridge?: HostAddressInfo;
+  logger?: LoggerOptions;
 };
 
 type ClientMeta = {
@@ -34,6 +35,10 @@ const clientOptions: ClientOptions = {
   },
   bridge: {
     port: -1,
+  },
+  logger: {
+    level: "info",
+    silent: true,
   },
   server: "",
   target: "",
@@ -138,7 +143,7 @@ const createProxyServer = (opt: { port: number; hostname?: string }) => {
     return;
   }
 
-  // Create TCP proxy server
+  // create TCP proxy server
   const server = createServer();
   clientMeta.tcpServer = server;
   server.on("connection", (local) => {
@@ -153,6 +158,8 @@ const createProxyServer = (opt: { port: number; hostname?: string }) => {
       `TCP Server running at tcp://${addressInfo?.address}:${addressInfo?.port}`
     );
   });
+
+  return server;
 };
 
 const ctrlHandler: WebsocketRequestHandler = (ws, req) => {
@@ -162,8 +169,7 @@ const ctrlHandler: WebsocketRequestHandler = (ws, req) => {
 
   clientMeta.bridge.ctrl = ws;
   clientMeta.bridge.origin = req.headers.origin || "";
-  clientMeta.bridge.status =
-    clientMeta.bridge.ctrl && clientMeta.bridge.data ? "waiting" : "preparing";
+  clientMeta.bridge.status = clientMeta.bridge.data ? "waiting" : "preparing";
 
   ws.on("message", (data: string) => {
     const ctrlData: BridgeCtrlData = JSON.parse(data);
@@ -190,8 +196,7 @@ const dataHandler: WebsocketRequestHandler = (ws) => {
   }
 
   clientMeta.bridge.data = ws;
-  clientMeta.bridge.status =
-    clientMeta.bridge.ctrl && clientMeta.bridge.data ? "waiting" : "preparing";
+  clientMeta.bridge.status = clientMeta.bridge.ctrl ? "waiting" : "preparing";
 
   ws.on("close", () => {
     clientMeta.bridge.data = null;
@@ -206,18 +211,21 @@ const pageHandler: RequestHandler = (_, res) => {
   res.render("index");
 };
 
-const getBridgeStatus = () => {
-  return clientMeta.bridge.status;
-};
-
 export const create = (opt: ClientOptions) => {
-  for (const [key, value] of Object.entries(opt)) {
-    clientOptions[key] = value;
+  assignDeep(clientOptions, opt);
+
+  if (clientOptions.logger?.level !== undefined) {
+    logger.level = clientOptions.logger.level;
   }
+  if (clientOptions.logger?.silent !== undefined) {
+    logger.silent = clientOptions.logger.silent;
+  }
+
   // check if enable the bridge
+  let app: expressWs.Application | null = null;
   if (opt.bridge) {
     clientMeta.mode = "bridge";
-    const app = createWebServer({
+    app = createWebServer({
       ...opt.bridge,
       callback: (server) => {
         const addressInfo = server?.address();
@@ -236,5 +244,9 @@ export const create = (opt: ClientOptions) => {
   logger.info(`tunnel mode: ${clientMeta.mode}`);
   createProxyServer(opt.listen);
 
-  return { getBridgeStatus };
+  return {
+    app,
+    opt: clientOptions,
+    meta: clientMeta,
+  };
 };

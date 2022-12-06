@@ -4,10 +4,25 @@ import pump from "pump";
 import url from "url";
 import { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
-import { createLogger } from "./utils";
+import { assignDeep, createLogger, LoggerOptions } from "./utils";
 import { createWebServer, HostAddressInfo } from "./core";
 
 export const logger = createLogger({ label: "cactus-tunnel:server" });
+
+type ServerOptions = {
+  listen: HostAddressInfo;
+  logger?: LoggerOptions;
+};
+
+const serverOptions: ServerOptions = {
+  listen: {
+    port: -1,
+  },
+  logger: {
+    level: "info",
+    silent: true,
+  },
+};
 
 const getTunnelInfo = function (req: http.IncomingMessage) {
   const result = url.parse(req.url || "", true);
@@ -55,7 +70,16 @@ const wsTunnelRequestHandler: WebsocketRequestHandler = function (ws, req) {
   pump(remote, local, onStreamError);
 };
 
-export const create = function (opt: { listen: HostAddressInfo }) {
+export const create = function (opt: ServerOptions) {
+  assignDeep(serverOptions, opt);
+
+  if (serverOptions.logger?.level !== undefined) {
+    logger.level = serverOptions.logger.level;
+  }
+  if (serverOptions.logger?.silent !== undefined) {
+    logger.silent = serverOptions.logger.silent;
+  }
+
   const app = createWebServer({
     ...opt.listen,
     callback: (server) => {
@@ -69,5 +93,9 @@ export const create = function (opt: { listen: HostAddressInfo }) {
     },
   });
   app.ws("/tunnel", wsTunnelRequestHandler);
-  return app;
+
+  return {
+    app,
+    opt: serverOptions,
+  };
 };
