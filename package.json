@@ -25,7 +25,7 @@
     "serve": "node dist/src/index.js",
     "cli": "node dist/bin/cactus-tunnel.js",
     "lint": "eslint . --ext .ts",
-    "test": "npm run build && node dist/tests/tests.js",
+    "test": "npm run build && mocha --file dist/test/**",
     "prepublish": "npm run build",
     "prepublishOnly": "npm test"
   },
@@ -48,6 +48,7 @@
     "@types/ejs": "^3.1.1",
     "@types/express": "^4.17.13",
     "@types/express-ws": "^3.0.1",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^17.0.8",
     "@types/pump": "^1.1.1",
     "@types/winston": "^2.4.4",
