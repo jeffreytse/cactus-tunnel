@@ -1,44 +1,54 @@
-import expressWs, { WebsocketRequestHandler } from "express-ws";
+import { RequestHandler } from "express";
+import { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
 import { createServer, Server, Socket } from "net";
-import url from "url";
 import pump from "pump";
+import { createWebServer, HostAddressInfo } from "./core";
 import { BridgeCtrlData } from "./bridge";
 import { sleep, createLogger } from "./utils";
-import config from "./config";
 
 export const logger = createLogger({ label: "cactus-tunnel:client" });
 
-type Proxy = {
-  port: number;
-  hostname?: string;
+type ClientOptions = {
+  listen: HostAddressInfo;
   server: string;
   target: string;
+  bridge?: HostAddressInfo;
+};
+
+type ClientMeta = {
   tcpServer: Server | null;
   clients: Socket[];
   bridge: {
-    origin: string;
     ctrl: WebSocketStream.WebSocket | null;
     data: WebSocketStream.WebSocket | null;
+    origin: string;
     status: "waiting" | "connected";
   };
-  mode: "default" | "bridge";
+  mode: "direct" | "bridge";
 };
 
-const proxy: Proxy = {
-  port: config.client.port,
-  hostname: config.client.hostname,
-  server: config.client.server,
-  target: config.client.target,
+const clientOptions: ClientOptions = {
+  listen: {
+    port: -1,
+  },
+  bridge: {
+    port: -1,
+  },
+  server: "",
+  target: "",
+};
+
+const clientMeta: ClientMeta = {
   tcpServer: null,
   clients: [],
   bridge: {
-    origin: "",
     ctrl: null,
     data: null,
+    origin: "",
     status: "waiting",
   },
-  mode: "default",
+  mode: "direct",
 };
 
 const formConnStr = (proxyServer: string, proxyTarget: string) => {
@@ -52,56 +62,44 @@ const tcpConnectionHandler: (local: Socket) => void = async (local) => {
 
   local.on("close", () => {
     logger.info("client connection was closed!");
-    proxy.clients.splice(proxy.clients.indexOf(local), 1);
+    clientMeta.clients.splice(clientMeta.clients.indexOf(local), 1);
   });
 
-  proxy.clients.push(local);
+  clientMeta.clients.push(local);
 
   let remote: WebSocketStream.WebSocketDuplex | null = null;
 
-  // handle connection according to proxy mode
-  if (proxy.mode === "bridge") {
-    logger.info("waiting for bridge ctrl and data tunnel...");
+  const connStr = formConnStr(clientOptions.server, clientOptions.target);
+  logger.info(`connecting to remote target: ${connStr}`);
 
-    while (!proxy.bridge.ctrl || !proxy.bridge.data) {
-      await sleep(50);
+  // handle connection according to proxy mode
+  if (clientMeta.mode === "bridge") {
+    // check if bridge ctrl and data tunnel are connected
+    if (!clientMeta.bridge.ctrl || !clientMeta.bridge.data) {
+      logger.info("waiting for the bridge ctrl and data tunnel...");
+      while (!clientMeta.bridge.ctrl || !clientMeta.bridge.data) {
+        await sleep(50);
+      }
     }
 
-    remote = WebSocketStream(proxy.bridge.data, {
+    remote = WebSocketStream(clientMeta.bridge.data, {
       // websocket-stream options here
       binary: true,
     });
 
-    logger.info("bridge ctrl and data tunnel was created!");
-
-    let proxyServer = proxy.server;
-    let proxyTarget = proxy.target;
-    const result = url.parse(proxy.bridge.origin, true);
-
-    if (proxyServer === "auto") {
-      proxyServer = `ws://${result.hostname}:${result.port}` || "";
-    }
-
-    if (proxyTarget === "auto") {
-      proxyTarget = `${result.hostname}:22`;
-    }
-
-    const connStr = formConnStr(proxyServer, proxyTarget);
     const ctrlData: BridgeCtrlData = {
       type: "connect",
       data: { connStr },
     };
 
-    proxy.bridge.ctrl.send(JSON.stringify(ctrlData));
+    logger.info("waiting for the bridge to establish tunnel...");
 
-    logger.info(`connecting to remote target: ${connStr}`);
+    clientMeta.bridge.ctrl.send(JSON.stringify(ctrlData));
 
-    while (proxy.bridge.status === "waiting") {
+    while (clientMeta.bridge.status === "waiting") {
       await sleep(50);
     }
   } else {
-    const connStr = formConnStr(proxy.server, proxy.target);
-    logger.info(`connecting to remote target: ${connStr}`);
     remote = WebSocketStream(connStr, {
       binary: true,
     });
@@ -116,6 +114,8 @@ const tcpConnectionHandler: (local: Socket) => void = async (local) => {
       return;
     }
 
+    logger.info("remote target connected!");
+
     pump(remote, local, onError);
     pump(local, remote, onError);
   };
@@ -126,13 +126,13 @@ const tcpConnectionHandler: (local: Socket) => void = async (local) => {
 
 const createProxyServer = (opt: { port: number; hostname?: string }) => {
   // destroy old proxy server
-  if (proxy.tcpServer) {
-    proxy.clients.forEach((client) => client.destroy());
-    proxy.clients = [];
-    proxy.tcpServer.close(() => {
+  if (clientMeta.tcpServer) {
+    clientMeta.clients.forEach((client) => client.destroy());
+    clientMeta.clients = [];
+    clientMeta.tcpServer.close(() => {
       logger.info("closed old proxy server");
-      proxy.tcpServer?.unref();
-      proxy.tcpServer = null;
+      clientMeta.tcpServer?.unref();
+      clientMeta.tcpServer = null;
       createProxyServer(opt);
     });
     return;
@@ -140,7 +140,7 @@ const createProxyServer = (opt: { port: number; hostname?: string }) => {
 
   // Create TCP proxy server
   const server = createServer();
-  proxy.tcpServer = server;
+  clientMeta.tcpServer = server;
   server.on("connection", (local) => {
     tcpConnectionHandler(local);
   });
@@ -156,27 +156,27 @@ const createProxyServer = (opt: { port: number; hostname?: string }) => {
 };
 
 const ctrlHandler: WebsocketRequestHandler = (ws, req) => {
-  if (proxy.bridge.ctrl) {
-    proxy.bridge.ctrl.close();
+  if (clientMeta.bridge.ctrl) {
+    clientMeta.bridge.ctrl.close();
   }
 
-  proxy.bridge.ctrl = ws;
-  proxy.bridge.origin = req.headers.origin || "";
-  proxy.bridge.status = "waiting";
+  clientMeta.bridge.ctrl = ws;
+  clientMeta.bridge.origin = req.headers.origin || "";
+  clientMeta.bridge.status = "waiting";
 
   ws.on("message", (data: string) => {
     const ctrlData: BridgeCtrlData = JSON.parse(data);
     switch (ctrlData.type) {
       case "connected":
-        proxy.bridge.status = "connected";
+        clientMeta.bridge.status = "connected";
         logger.info("target tunnel connected!");
         break;
     }
   });
 
   ws.on("close", () => {
-    proxy.bridge.ctrl = null;
-    proxy.bridge.status = "waiting";
+    clientMeta.bridge.ctrl = null;
+    clientMeta.bridge.status = "waiting";
     logger.info("bridge ctrl tunnel disconnected!");
   });
 
@@ -184,31 +184,48 @@ const ctrlHandler: WebsocketRequestHandler = (ws, req) => {
 };
 
 const dataHandler: WebsocketRequestHandler = (ws) => {
-  if (proxy.bridge.data) {
-    proxy.bridge.data.close();
+  if (clientMeta.bridge.data) {
+    clientMeta.bridge.data.close();
   }
 
-  proxy.bridge.data = ws;
+  clientMeta.bridge.data = ws;
 
   ws.on("close", () => {
-    proxy.bridge.data = null;
-    proxy.bridge.status = "waiting";
+    clientMeta.bridge.data = null;
+    clientMeta.bridge.status = "waiting";
     logger.info("bridge data tunnel disconnected!");
   });
 
   logger.info("bridge data tunnel connected!");
 };
 
-export const create = function (app?: expressWs.Application) {
-  const isWebBridgeMode = !!app;
-  if (isWebBridgeMode) {
-    proxy.mode = "bridge";
+const pageHandler: RequestHandler = (_, res) => {
+  res.render("index");
+};
+
+export const create = (opt: ClientOptions) => {
+  for (const [key, value] of Object.entries(opt)) {
+    clientOptions[key] = value;
+  }
+  // check if enable the bridge
+  if (opt.bridge) {
+    clientMeta.mode = "bridge";
+    const app = createWebServer({
+      ...opt.bridge,
+      callback: (server) => {
+        const addressInfo = server?.address();
+        if (typeof addressInfo === "string") {
+          return;
+        }
+        logger.info(
+          `Tunnel Bridge running on http://${addressInfo?.address}:${addressInfo?.port}`
+        );
+      },
+    });
     app.ws("/ctrl", ctrlHandler);
     app.ws("/data", dataHandler);
-  } else {
-    proxy.mode = "default";
+    app.get("/", pageHandler);
   }
-  logger.info(`client mode: ${proxy.mode}`);
-  createProxyServer({ port: proxy.port, hostname: proxy.hostname });
-  return app;
+  logger.info(`tunnel mode: ${clientMeta.mode}`);
+  createProxyServer(opt.listen);
 };

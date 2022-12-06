@@ -2,9 +2,10 @@ import { createConnection } from "net";
 import http from "http";
 import pump from "pump";
 import url from "url";
-import expressWs, { WebsocketRequestHandler } from "express-ws";
+import { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
 import { createLogger } from "./utils";
+import { createWebServer, HostAddressInfo } from "./core";
 
 export const logger = createLogger({ label: "cactus-tunnel:server" });
 
@@ -22,7 +23,7 @@ const getTunnelInfo = function (req: http.IncomingMessage) {
 
 const wsTunnelRequestHandler: WebsocketRequestHandler = function (ws, req) {
   const remoteIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  logger.info(`websocket request from: ${remoteIP}`);
+  logger.info(`client request from: ${remoteIP}`);
 
   const tunnelInfo = getTunnelInfo(req);
 
@@ -54,10 +55,19 @@ const wsTunnelRequestHandler: WebsocketRequestHandler = function (ws, req) {
   pump(remote, local, onStreamError);
 };
 
-export const create = function (app: expressWs.Application) {
-  app.ws("/tunnel", wsTunnelRequestHandler);
-  app.get("/", (_, res) => {
-    res.render("index");
+export const create = function (opt: { listen: HostAddressInfo }) {
+  const app = createWebServer({
+    ...opt.listen,
+    callback: (server) => {
+      const addressInfo = server?.address();
+      if (typeof addressInfo === "string") {
+        return;
+      }
+      logger.info(
+        `Tunnel Server running on http://${addressInfo?.address}:${addressInfo?.port}`
+      );
+    },
   });
+  app.ws("/tunnel", wsTunnelRequestHandler);
   return app;
 };
