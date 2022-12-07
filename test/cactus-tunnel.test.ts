@@ -1,12 +1,13 @@
 import { createClient, createServer } from "../src/";
 import config from "../src/config";
 import pkg from "../package.json";
+import { sleep } from "../src/utils";
 import { describe, it } from "mocha";
+import puppeteer from "puppeteer";
 import assert from "assert";
 import axios from "axios";
-import { sleep } from "../src/utils";
 
-describe("suites for tunnel modes", function () {
+describe("Tunnel modes", function () {
   before(function () {
     this.refs = {
       // Create tunnel server
@@ -22,15 +23,10 @@ describe("suites for tunnel modes", function () {
     setTimeout(() => process.exit(0), 500);
   });
 
-  afterEach(function () {
-    // will be executed
-    this.refs.client.close();
-  });
-
-  describe("establish tunnel in direct mode", function () {
-    it(`should return ${pkg.name} when the tunnel `, async function () {
+  describe("#direct mode", function () {
+    it(`should return ${pkg.name} when the tunnel established`, async function () {
       // Create tunnel client in direct mode
-      this.refs.client = createClient({
+      const client = createClient({
         listen: config.client,
         server: `ws://${config.server.hostname}:${config.server.port}`,
         target: `${config.server.hostname}:${config.server.port}`,
@@ -41,15 +37,17 @@ describe("suites for tunnel modes", function () {
       );
 
       assert.equal(res.data.name, pkg.name);
+
+      client.close();
     });
   });
 
-  describe("establish tunnel in bridge mode", function () {
-    this.timeout(15000);
+  describe("#bridge mode", function () {
+    this.timeout(5000);
 
     it(`should return ${pkg.name} when the tunnel established`, async function () {
       // Create tunnel client in bridge mode
-      this.refs.client = createClient({
+      const client = createClient({
         listen: config.client,
         server: `ws://${config.server.hostname}:${config.server.port}`,
         target: `${config.server.hostname}:${config.server.port}`,
@@ -58,10 +56,12 @@ describe("suites for tunnel modes", function () {
         },
       });
 
-      if (await this.refs.client.autoOpenBridge()) {
-        while (!this.refs.client.isBridgeOpened()) {
-          await sleep(500);
-        }
+      const browser = await puppeteer.launch();
+      const page = await browser.newPage();
+      await page.goto(client.getBridgeUrl());
+
+      while (!client.isBridgeOpened()) {
+        await sleep(100);
       }
 
       const res = await axios.get(
@@ -69,6 +69,9 @@ describe("suites for tunnel modes", function () {
       );
 
       assert.equal(res.data.name, pkg.name);
+
+      client.close();
+      await browser.close();
     });
   });
 });
