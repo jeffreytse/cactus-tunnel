@@ -47,12 +47,12 @@ const connectToRemote = (connStr: string) => {
       bridge.status = "connected";
       logger.info(`server connected!`);
     })
-    .on("error", (err: string) => {
-      logger.error(`server error: ${err}!`);
+    .on("error", () => {
+      logger.error(`server error!`);
     })
-    .on("close", (err: string) => {
+    .on("close", (err: Error) => {
       if (err) {
-        logger.error(`server error: ${err}!`);
+        logger.error(`server error: ${err.message}!`);
       }
       bridge.client.data?.destroy();
       logger.info(`server closed!`);
@@ -108,14 +108,14 @@ const openDataTunnel = (clientUrl: string) => {
     }
     logger.info("client data tunnel connected!");
   })
-    .on("error", (err: string) => {
-      logger.error(`client data tunnel error! ${err}`);
+    .on("error", () => {
+      logger.error(`client data tunnel error!`);
     })
-    .on("close", (err: string) => {
+    .on("close", (err: Error) => {
       bridge.client.data = null;
       bridge.status = "disconnected";
       if (err) {
-        logger.error(`client data tunnel error: ${err}!`);
+        logger.error(`client data tunnel error: ${err.message}!`);
       }
       logger.info(`client data tunnel closed!`);
     });
