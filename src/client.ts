@@ -130,17 +130,21 @@ const tcpConnectionHandler: (local: Socket) => void = async (local) => {
   setTimeout(pipe, 100);
 };
 
+const closeProxyServer = () => {
+  clientMeta.clients.forEach((client) => client.destroy());
+  clientMeta.clients = [];
+  clientMeta.tcpServer?.close(() => {
+    logger.info("closed old proxy server");
+  });
+  clientMeta.tcpServer?.unref();
+  clientMeta.tcpServer = null;
+};
+
 const createProxyServer = (opt: { port: number; hostname?: string }) => {
   // destroy old proxy server
   if (clientMeta.tcpServer) {
-    clientMeta.clients.forEach((client) => client.destroy());
-    clientMeta.clients = [];
-    clientMeta.tcpServer.close(() => {
-      logger.info("closed old proxy server");
-      clientMeta.tcpServer?.unref();
-      clientMeta.tcpServer = null;
-      createProxyServer(opt);
-    });
+    closeProxyServer();
+    createProxyServer(opt);
     return;
   }
 
@@ -266,10 +270,10 @@ export const create = (opt: ClientOptions) => {
   }
 
   logger.info(`tunnel mode: ${clientMeta.mode}`);
-  const server = createProxyServer(opt.listen);
+  createProxyServer(opt.listen);
 
   const close = () => {
-    server?.close();
+    closeProxyServer();
     app?.get("server")?.close();
   };
 
