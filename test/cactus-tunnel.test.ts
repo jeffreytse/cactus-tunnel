@@ -1,53 +1,52 @@
+import { describe, expect, test } from "@jest/globals";
 import { createClient, createServer } from "../src/";
 import config from "../src/config";
 import pkg from "../package.json";
 import { sleep } from "../src/utils";
-import { describe, it } from "mocha";
 import puppeteer from "puppeteer";
-import assert from "assert";
 import axios from "axios";
 
-describe("Tunnel modes", function () {
-  before(function () {
-    this.refs = {
-      // Create tunnel server
-      server: createServer({
-        listen: config.server,
-      }),
-    };
+describe("tunnel modes", () => {
+  let server: ReturnType<typeof createServer>;
+
+  beforeAll(() => {
+    server = createServer({
+      listen: config.server,
+    });
   });
 
-  after(function () {
-    // will be executed
-    this.refs.server.close();
-    setTimeout(() => process.exit(0), 500);
+  afterAll(() => {
+    server.close();
   });
 
-  describe("#direct mode", function () {
-    it(`should return ${pkg.name} when the tunnel established`, async function () {
-      // Create tunnel client in direct mode
-      const client = createClient({
+  describe("#direct mode", () => {
+    let client: ReturnType<typeof createClient>;
+
+    beforeEach(() => {
+      client = createClient({
         listen: config.client,
         server: `ws://${config.server.hostname}:${config.server.port}`,
         target: `${config.server.hostname}:${config.server.port}`,
       });
+    });
 
+    afterEach(() => {
+      client.close();
+    });
+
+    test(`should return ${pkg.name} when the tunnel established`, async () => {
       const res = await axios.get(
         `http://${config.client.hostname}:${config.client.port}/version`
       );
-
-      assert.equal(res.data.name, pkg.name);
-
-      client.close();
+      expect(res.data.name).toBe(pkg.name);
     });
   });
 
-  describe("#bridge mode", function () {
-    this.timeout(5000);
+  describe("#bridge mode", () => {
+    let client: ReturnType<typeof createClient>;
 
-    it(`should return ${pkg.name} when the tunnel established`, async function () {
-      // Create tunnel client in bridge mode
-      const client = createClient({
+    beforeEach(() => {
+      client = createClient({
         listen: config.client,
         server: `ws://${config.server.hostname}:${config.server.port}`,
         target: `${config.server.hostname}:${config.server.port}`,
@@ -55,7 +54,14 @@ describe("Tunnel modes", function () {
           port: config.bridge.port,
         },
       });
+    });
 
+    afterEach(() => {
+      client.close();
+    });
+
+    test(`should return ${pkg.name} when the tunnel established`, async () => {
+      // create tunnel bridge
       const browser = await puppeteer.launch();
       const page = await browser.newPage();
       await page.goto(client.getBridgeUrl());
@@ -68,10 +74,9 @@ describe("Tunnel modes", function () {
         `http://${config.client.hostname}:${config.client.port}/version`
       );
 
-      assert.equal(res.data.name, pkg.name);
-
-      client.close();
       await browser.close();
+
+      expect(res.data.name).toBe(pkg.name);
     });
   });
 });
