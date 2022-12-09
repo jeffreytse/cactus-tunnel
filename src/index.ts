@@ -1,10 +1,7 @@
-import * as Server from "./server";
-import * as Client from "./client";
-
-export const createServer = Server.create;
-export const createClient = Client.create;
+import Server from "./server";
+import Client from "./client";
 
 export default {
-  createServer,
-  createClient,
+  Server,
+  Client,
 };

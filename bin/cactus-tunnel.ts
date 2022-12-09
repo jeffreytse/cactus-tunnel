@@ -52,7 +52,7 @@ program
   )
   .option("-v, --verbose", "enable verbose output")
   .action((server, target, options) => {
-    const client = cactusTunnel.createClient({
+    const client = new cactusTunnel.Client({
       listen: {
         port: options.port,
         hostname: options.hostname,
@@ -70,7 +70,7 @@ program
       },
     });
     console.info(
-      `client listening on: tcp://${options.hostname}:${options.port}`
+      `client listening at: tcp://${options.hostname}:${options.port}`
     );
     if (options.bridgeMode) {
       const url = `http://${options.bridgeHostname}:${options.bridgePort}`;
@@ -97,7 +97,7 @@ program
   )
   .option("-v, --verbose", "enable verbose output")
   .action((options) => {
-    cactusTunnel.createServer({
+    new cactusTunnel.Server({
       listen: {
         port: options.port,
         hostname: options.hostname,
@@ -107,7 +107,7 @@ program
       },
     });
     console.info(
-      `server listening on: http://${options.hostname}:${options.port}`
+      `server listening at: http://${options.hostname}:${options.port}`
     );
   });
 

@@ -1,6 +1,7 @@
 import express from "express";
 import expressWs from "express-ws";
 import http from "http";
+import { createServer, Server } from "net";
 import pkg from "../package.json";
 
 export type HostAddressInfo = {
@@ -8,11 +9,17 @@ export type HostAddressInfo = {
   hostname?: string;
 };
 
-export const createWebServer = function (
-  opt: HostAddressInfo & {
-    callback?: (server: http.Server) => void;
-  }
-): expressWs.Application {
+export type WebServerOptions = HostAddressInfo & {
+  callback?: (server: http.Server) => void;
+};
+
+export type TcpServerOptions = HostAddressInfo & {
+  callback?: (server: Server) => void;
+};
+
+export type WebServer = expressWs.Application & { server: http.Server };
+
+export const createWebServer = (opt: WebServerOptions): WebServer => {
   const app: express.Application = express();
 
   // extend express app with app.ws()
@@ -47,7 +54,15 @@ export const createWebServer = function (
     ? app.listen(opt.port, opt.hostname, cb)
     : app.listen(opt.port, cb);
 
-  app.set("server", server);
+  (app as WebServer).server = server;
 
-  return app as expressWs.Application;
+  return app as WebServer;
+};
+
+export const createTcpServer = (opt: TcpServerOptions) => {
+  const server = createServer();
+  server.listen(opt.port, opt.hostname, () => {
+    opt.callback && opt.callback(server);
+  });
+  return server;
 };

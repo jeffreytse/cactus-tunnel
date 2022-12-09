@@ -1,14 +1,21 @@
 import { RequestHandler } from "express";
-import expressWs, { WebsocketRequestHandler } from "express-ws";
+import { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
-import { createServer, Server, Socket } from "net";
+import { Server, Socket } from "net";
 import pump from "pump";
-import { createWebServer, HostAddressInfo } from "./core";
+import {
+  createTcpServer,
+  createWebServer,
+  HostAddressInfo,
+  TcpServerOptions,
+  WebServer,
+  WebServerOptions,
+} from "./core";
 import { BridgeCtrlData } from "./bridge";
 import { sleep, createLogger, LoggerOptions, assignDeep } from "./utils";
+import net from "net";
 import open from "open";
-
-const logger = createLogger({ label: "cactus-tunnel:client" });
+import winston from "winston";
 
 type ClientOptions = {
   listen: HostAddressInfo;
@@ -16,6 +23,7 @@ type ClientOptions = {
   target: string;
   bridge?: HostAddressInfo;
   logger?: LoggerOptions;
+  callback?: (server?: net.Server) => void;
 };
 
 type ClientMeta = {
@@ -30,260 +38,312 @@ type ClientMeta = {
   mode: "direct" | "bridge";
 };
 
-const clientOptions: ClientOptions = {
-  listen: {
-    port: -1,
-  },
-  bridge: {
-    port: -1,
-  },
-  logger: {
-    level: "info",
-    silent: true,
-  },
-  server: "",
-  target: "",
-};
+export interface IClient {
+  options: ClientOptions;
+  logger: winston.Logger;
+  app: WebServer | null;
+  meta: ClientMeta;
+  tcpConnectionHandler(local: Socket): void;
+  closeProxyServer(callback?: (err?: Error) => void): void;
+  createProxyServer(opt: TcpServerOptions): net.Server;
+  ctrlHandler: WebsocketRequestHandler;
+  dataHandler: WebsocketRequestHandler;
+  pageHandler: RequestHandler;
+  isBridgeOpened(): boolean;
+  getBridgeUrl(): string;
+  autoOpenBridge(url: string, retries: number): void;
+  createBridge(opt: WebServerOptions): WebServer;
+  close(callback?: (err?: Error) => void): void;
+  create(opt: ClientOptions): void;
+}
 
-const clientMeta: ClientMeta = {
-  tcpServer: null,
-  clients: [],
-  bridge: {
-    ctrl: null,
-    data: null,
-    origin: "",
-    status: "preparing",
-  },
-  mode: "direct",
-};
-
-const formConnStr = (proxyServer: string, proxyTarget: string) => {
+export const formConnStr = (proxyServer: string, proxyTarget: string) => {
   proxyServer += proxyServer.slice(-1) === "/" ? "" : "/";
   const encodedTarget = encodeURIComponent(proxyTarget);
   return `${proxyServer}tunnel?target=${encodedTarget}`;
 };
 
-const tcpConnectionHandler: (local: Socket) => void = async (local) => {
-  logger.info("beginning new client connection...");
+class Client implements IClient {
+  options: ClientOptions = {
+    listen: {
+      port: -1,
+    },
+    bridge: {
+      port: -1,
+    },
+    logger: {
+      level: "info",
+      silent: true,
+    },
+    server: "",
+    target: "",
+  };
 
-  local.on("close", () => {
-    logger.info("client connection was closed!");
-    clientMeta.clients.splice(clientMeta.clients.indexOf(local), 1);
-  });
+  logger = createLogger({ label: "cactus-tunnel:client" });
 
-  clientMeta.clients.push(local);
+  app: WebServer | null = null;
 
-  let remote: WebSocketStream.WebSocketDuplex | null = null;
+  meta: ClientMeta = {
+    tcpServer: null,
+    clients: [],
+    bridge: {
+      ctrl: null,
+      data: null,
+      origin: "",
+      status: "preparing",
+    },
+    mode: "direct",
+  };
 
-  const connStr = formConnStr(clientOptions.server, clientOptions.target);
-  logger.info(`connecting to remote target: ${connStr}`);
+  constructor(options: ClientOptions) {
+    this.create(options);
+  }
 
-  // handle connection according to proxy mode
-  if (clientMeta.mode === "bridge") {
-    // check if bridge ctrl and data tunnel are connected
-    if (!clientMeta.bridge.ctrl || !clientMeta.bridge.data) {
-      logger.info("waiting for the bridge ctrl and data tunnel...");
-      while (!clientMeta.bridge.ctrl || !clientMeta.bridge.data) {
+  tcpConnectionHandler = async (local: Socket) => {
+    this.logger.info("new client connection...");
+
+    local.on("close", () => {
+      this.meta.clients.splice(this.meta.clients.indexOf(local), 1);
+      this.logger.info("client connection closed!");
+    });
+
+    this.meta.clients.push(local);
+
+    let remote: WebSocketStream.WebSocketDuplex | null = null;
+
+    const connStr = formConnStr(this.options.server, this.options.target);
+    this.logger.info(`connecting to remote target: ${connStr}`);
+
+    // handle connection according to proxy mode
+    if (this.meta.mode === "bridge") {
+      // check if bridge ctrl and data tunnel are connected
+      if (!this.meta.bridge.ctrl || !this.meta.bridge.data) {
+        this.logger.info("waiting for the bridge ctrl and data tunnel...");
+        while (!this.meta.bridge.ctrl || !this.meta.bridge.data) {
+          await sleep(50);
+        }
+      }
+
+      remote = WebSocketStream(this.meta.bridge.data, {
+        // websocket-stream options here
+        binary: true,
+      });
+
+      const ctrlData: BridgeCtrlData = {
+        type: "connect",
+        data: { connStr },
+      };
+
+      this.logger.info("waiting for the bridge to establish tunnel...");
+
+      this.meta.bridge.ctrl.send(JSON.stringify(ctrlData));
+
+      while (this.meta.bridge.status === "waiting") {
         await sleep(50);
       }
+    } else {
+      remote = WebSocketStream(connStr, {
+        binary: true,
+      });
     }
 
-    remote = WebSocketStream(clientMeta.bridge.data, {
-      // websocket-stream options here
-      binary: true,
-    });
+    const pipe = () => {
+      const onError: pump.Callback = (err) => {
+        if (err) this.logger.error(err);
+      };
 
-    const ctrlData: BridgeCtrlData = {
-      type: "connect",
-      data: { connStr },
+      if (!remote) {
+        return;
+      }
+
+      this.logger.info("remote target connected!");
+
+      pump(remote, local, onError);
+      pump(local, remote, onError);
     };
 
-    logger.info("waiting for the bridge to establish tunnel...");
-
-    clientMeta.bridge.ctrl.send(JSON.stringify(ctrlData));
-
-    while (clientMeta.bridge.status === "waiting") {
-      await sleep(50);
-    }
-  } else {
-    remote = WebSocketStream(connStr, {
-      binary: true,
-    });
-  }
-
-  const pipe = () => {
-    const onError: pump.Callback = (err) => {
-      if (err) logger.error(err);
-    };
-
-    if (!remote) {
-      return;
-    }
-
-    logger.info("remote target connected!");
-
-    pump(remote, local, onError);
-    pump(local, remote, onError);
+    // pipe stream after remote websocket stream connected
+    setTimeout(pipe, 100);
   };
 
-  // pipe stream after remote websocket stream connected
-  setTimeout(pipe, 100);
-};
+  closeProxyServer = (callback?: (err?: Error) => void) => {
+    this.meta.clients.forEach((client) => client.destroy());
+    this.meta.clients = [];
+    this.meta.tcpServer?.close(callback);
+    this.meta.tcpServer?.unref();
+    this.meta.tcpServer = null;
+  };
 
-const closeProxyServer = () => {
-  clientMeta.clients.forEach((client) => client.destroy());
-  clientMeta.clients = [];
-  clientMeta.tcpServer?.close(() => {
-    logger.info("closed old proxy server");
-  });
-  clientMeta.tcpServer?.unref();
-  clientMeta.tcpServer = null;
-};
-
-const createProxyServer = (opt: { port: number; hostname?: string }) => {
-  // destroy old proxy server
-  if (clientMeta.tcpServer) {
-    closeProxyServer();
-    createProxyServer(opt);
-    return;
-  }
-
-  // create TCP proxy server
-  const server = createServer();
-  clientMeta.tcpServer = server;
-  server.on("connection", (local) => {
-    tcpConnectionHandler(local);
-  });
-  server.listen(opt.port, opt.hostname, () => {
-    const addressInfo = server?.address();
-    if (typeof addressInfo === "string") {
-      return;
+  createProxyServer = (opt: TcpServerOptions) => {
+    // destroy old proxy server
+    if (this.meta.tcpServer) {
+      this.closeProxyServer(() => {
+        this.logger.info("closed old proxy server");
+      });
     }
-    logger.info(
-      `TCP Server running at tcp://${addressInfo?.address}:${addressInfo?.port}`
-    );
-  });
 
-  return server;
-};
-
-const ctrlHandler: WebsocketRequestHandler = (ws, req) => {
-  if (clientMeta.bridge.ctrl) {
-    clientMeta.bridge.ctrl.close();
-  }
-
-  clientMeta.bridge.ctrl = ws;
-  clientMeta.bridge.origin = req.headers.origin || "";
-  clientMeta.bridge.status = clientMeta.bridge.data ? "waiting" : "preparing";
-
-  ws.on("message", (data: string) => {
-    const ctrlData: BridgeCtrlData = JSON.parse(data);
-    switch (ctrlData.type) {
-      case "connected":
-        clientMeta.bridge.status = "connected";
-        logger.info("target tunnel connected!");
-        break;
-    }
-  });
-
-  ws.on("close", () => {
-    clientMeta.bridge.ctrl = null;
-    clientMeta.bridge.status = "preparing";
-    logger.info("bridge ctrl tunnel disconnected!");
-  });
-
-  logger.info("bridge ctrl tunnel connected!");
-};
-
-const dataHandler: WebsocketRequestHandler = (ws) => {
-  if (clientMeta.bridge.data) {
-    clientMeta.bridge.data.close();
-  }
-
-  clientMeta.bridge.data = ws;
-  clientMeta.bridge.status = clientMeta.bridge.ctrl ? "waiting" : "preparing";
-
-  ws.on("close", () => {
-    clientMeta.bridge.data = null;
-    clientMeta.bridge.status = "preparing";
-    logger.info("bridge data tunnel disconnected!");
-  });
-
-  logger.info("bridge data tunnel connected!");
-};
-
-const pageHandler: RequestHandler = (_, res) => {
-  res.render("index");
-};
-
-const isBridgeOpened = () => {
-  return clientMeta.bridge.status !== "preparing";
-};
-
-const getBridgeUrl = () => {
-  const hostname = clientOptions.bridge?.hostname || "localhost";
-  return `http://${hostname}:${clientOptions.bridge?.port}`;
-};
-
-const autoOpenBridge = async (url = getBridgeUrl(), retries = 6) => {
-  let time = 0;
-  while (!isBridgeOpened() && ++time < retries) {
-    await sleep(500);
-  }
-  if (!isBridgeOpened()) {
-    logger.info(`auto opening bridge ${url}`);
-    open(url);
-    return true;
-  }
-  return false;
-};
-
-export const create = (opt: ClientOptions) => {
-  assignDeep(clientOptions, opt);
-
-  if (clientOptions.logger?.level !== undefined) {
-    logger.level = clientOptions.logger.level;
-  }
-  if (clientOptions.logger?.silent !== undefined) {
-    logger.silent = clientOptions.logger.silent;
-  }
-
-  // check if enable the bridge
-  let app: expressWs.Application | null = null;
-  if (opt.bridge) {
-    clientMeta.mode = "bridge";
-    app = createWebServer({
-      ...opt.bridge,
-      callback: (server) => {
+    // create TCP proxy server
+    const server = createTcpServer({
+      port: opt.port,
+      hostname: opt.hostname,
+      callback: (server: Server) => {
         const addressInfo = server?.address();
-        if (typeof addressInfo === "string") {
-          return;
+        if (typeof addressInfo !== "string") {
+          this.logger.info(
+            `TCP Server listen at tcp://${addressInfo?.address}:${addressInfo?.port}`
+          );
         }
-        logger.info(
-          `Tunnel Bridge running on http://${addressInfo?.address}:${addressInfo?.port}`
-        );
+        opt.callback && opt.callback(server);
       },
     });
-    app.ws("/ctrl", ctrlHandler);
-    app.ws("/data", dataHandler);
-    app.get("/", pageHandler);
-  }
+    server.on("connection", (local) => {
+      this.tcpConnectionHandler(local);
+    });
 
-  logger.info(`tunnel mode: ${clientMeta.mode}`);
-  createProxyServer(opt.listen);
+    this.meta.tcpServer = server;
 
-  const close = () => {
-    closeProxyServer();
-    app?.get("server")?.close();
+    return server;
   };
 
-  return {
-    app,
-    opt: clientOptions,
-    meta: clientMeta,
-    close,
-    isBridgeOpened,
-    autoOpenBridge,
-    getBridgeUrl,
+  ctrlHandler: WebsocketRequestHandler = (ws, req) => {
+    if (this.meta.bridge.ctrl) {
+      this.meta.bridge.ctrl.close();
+    }
+
+    this.meta.bridge.ctrl = ws;
+    this.meta.bridge.origin = req.headers.origin || "";
+    this.meta.bridge.status = this.meta.bridge.data ? "waiting" : "preparing";
+
+    ws.on("close", () => {
+      this.meta.bridge.ctrl = null;
+      this.meta.bridge.status = "preparing";
+      this.logger.info("bridge ctrl tunnel disconnected!");
+    });
+
+    ws.on("message", (data: string) => {
+      const ctrlData: BridgeCtrlData = JSON.parse(data);
+      switch (ctrlData.type) {
+        case "connected":
+          this.meta.bridge.status = "connected";
+          this.logger.info("target tunnel connected!");
+          break;
+      }
+    });
+
+    this.logger.info("bridge ctrl tunnel connected!");
   };
-};
+
+  dataHandler: WebsocketRequestHandler = (ws) => {
+    if (this.meta.bridge.data) {
+      this.meta.bridge.data.close();
+    }
+
+    this.meta.bridge.data = ws;
+    this.meta.bridge.status = this.meta.bridge.ctrl ? "waiting" : "preparing";
+
+    ws.on("close", () => {
+      this.meta.bridge.data = null;
+      this.meta.bridge.status = "preparing";
+      this.logger.info("bridge data tunnel disconnected!");
+    });
+
+    this.logger.info("bridge data tunnel connected!");
+  };
+
+  pageHandler: RequestHandler = (_, res) => {
+    res.render("index");
+  };
+
+  isBridgeOpened = () => {
+    return this.meta.bridge.status !== "preparing";
+  };
+
+  getBridgeUrl = () => {
+    const hostname = this.options.bridge?.hostname || "localhost";
+    return `http://${hostname}:${this.options.bridge?.port}`;
+  };
+
+  autoOpenBridge = async (url = this.getBridgeUrl(), retries = 6) => {
+    let time = 0;
+    while (!this.isBridgeOpened() && ++time < retries) {
+      await sleep(500);
+    }
+    if (!this.isBridgeOpened()) {
+      this.logger.info(`auto opening bridge ${url}`);
+      open(url);
+      return true;
+    }
+    return false;
+  };
+
+  createBridge = (opt: WebServerOptions) => {
+    const app = createWebServer({
+      port: opt.port,
+      hostname: opt.hostname,
+      callback: (server) => {
+        const addressInfo = server?.address();
+        if (typeof addressInfo !== "string") {
+          this.logger.info(
+            `Tunnel Bridge listening at http://${addressInfo?.address}:${addressInfo?.port}`
+          );
+        }
+        opt.callback && opt.callback(server);
+      },
+    });
+    app.ws("/ctrl", this.ctrlHandler);
+    app.ws("/data", this.dataHandler);
+    app.get("/", this.pageHandler);
+    return app;
+  };
+
+  close = (callback?: (err?: Error) => void) => {
+    this.logger.info("tunnel client is closing...");
+    const cb = (err?: Error) => {
+      this.logger.info("tunnel client closed");
+      callback && callback(err);
+    };
+    this.closeProxyServer(() => {
+      if (!this.app) {
+        cb();
+        return;
+      }
+      this.app.server.close(cb);
+      this.app.server.unref();
+    });
+  };
+
+  create = (opt: ClientOptions) => {
+    assignDeep(this.options, opt);
+    if (this.options.logger?.level !== undefined) {
+      this.logger.level = this.options.logger.level;
+    }
+    if (this.options.logger?.silent !== undefined) {
+      this.logger.silent = this.options.logger.silent;
+    }
+
+    if (opt.bridge) {
+      this.meta.mode = "bridge";
+    }
+
+    this.createProxyServer({
+      ...opt.listen,
+      callback: (server) => {
+        // check if enable the bridge
+        if (!opt.bridge) {
+          opt.callback && opt.callback(server);
+          return;
+        }
+        this.app = this.createBridge({
+          ...opt.bridge,
+          callback: () => {
+            opt.callback && opt.callback(server);
+          },
+        });
+      },
+    });
+
+    this.logger.info(`tunnel mode: ${this.meta.mode}`);
+  };
+}
+
+export default Client;
