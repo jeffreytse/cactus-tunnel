@@ -123,7 +123,6 @@ const openDataTunnel = (clientUrl: string) => {
 
 const connectToClient = (clientUrl: string) => {
   logger.info(`connect to client...`);
-  bridge.status = "disconnected";
   bridge.client.ctrl || openCtrlTunnel(clientUrl);
   bridge.client.data || openDataTunnel(clientUrl);
 };
