@@ -149,28 +149,54 @@ Options:
   --help                            display help for command
 ```
 
+### Request External API Services
+
 Start a tunnel client:
 
 ```sh
-cactus-tunnel client -b ws://localhost:7800 api.ipify.com:80
+cactus-tunnel client -b ws://<your-tunnel-server>:7800 api.ipify.com:80
 ```
 
 This command will start a server at address `localhost:7700` in bridge mode,
 and open the tunnel bridge on the web browser.
 
 ```sh
-curl http://localhost:7700/?format=json
+curl http://localhost:7700/\?format\=json
 ```
 
 When you connect to the port `7700`, it will auto connect to the specified
-tunnel server `localhost:7800` and connect to target host `api.ipify:80`, you
-will get your server ip address through [the IP API lookup service](https://www.ipify.com),
+tunnel server `<your-tunnel-server>:7800` and connect to target host
+`api.ipify:80`, you will get your server ip address through [the IP API lookup service](https://www.ipify.com),
 the response content is similar as below:
 
 ```sh
-$ curl http://localhost:7700/?format=json
+$ curl http://localhost:7700/\?format\=json
 {"ip":"201.xxx.xxx.138"}%
 ```
+
+### SSH SOCKS5 Proxy
+
+Start a tunnel client:
+
+```sh
+cactus-tunnel client -b ws://<your-tunnel-server>:7800 <your-ssh-server>:22
+```
+
+This command will start a server at address `localhost:7700` in bridge mode,
+and open the tunnel bridge on the web browser.
+
+```sh
+ssh -p 7700 -D 3128 -C -N <your-username>@localhost
+```
+
+- `-D 3128`: open a SOCKS5 proxy on local port `3128`
+- `-C`: compress data in the tunnel, save bandwidth
+- `-N`: do not execute remote commands, useful for just forwarding ports
+
+When you connect to the port `7700`, it will auto connect to the specified
+tunnel server `localhost:7800` and connect to target host `<your-ssh-server>:22`.
+Now you have an SSH tunnel between your computer and the remote host, in
+this example `<your-ssh-server>:22`.
 
 ### Import the package
 
