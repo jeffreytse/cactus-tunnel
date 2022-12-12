@@ -2,6 +2,7 @@ import express from "express";
 import expressWs from "express-ws";
 import http from "http";
 import { createServer, Server } from "net";
+import path from "path";
 import pkg from "../package.json";
 
 export type HostAddressInfo = {
@@ -30,10 +31,11 @@ export const createWebServer = (opt: WebServerOptions): WebServer => {
   });
 
   // serve static files
-  app.use(express.static("public"));
+  app.use(express.static(path.join(__dirname, "../../public")));
 
   // set the view engine to ejs
   app.set("view engine", "ejs");
+  app.set("views", path.join(__dirname, "../../views"));
 
   // set route for version
   app.get("/version", (_, res) => {
