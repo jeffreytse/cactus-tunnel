@@ -1,7 +1,7 @@
 {
   "name": "cactus-tunnel",
   "version": "0.1.0",
-  "description": "TCP tunnel over websocket and browser",
+  "description": "TCP tunnel over WebSocket and Browser",
   "main": "dist/src/index.js",
   "bin": {
     "cactus-tunnel": "dist/bin/cactus-tunnel.js"

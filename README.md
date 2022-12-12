@@ -10,7 +10,7 @@
 </div>
 
 <h4 align="center">
-  🌵 A charming TCP tunnel over websocket and browser.
+  🌵 A charming TCP tunnel over WebSocket and Browser.
 </h4>
 
 <p align="center">
@@ -50,12 +50,12 @@
 
 <br>
 
-Hey, nice to meet you, you found this charming tool. Here the
-_Cactus Tunnel_ is a TCP tunnel tool over websocket and browser. It can help
-you open a TCP tunnel to the outside world through the browser in an extremely
-restricted environment, just like a cactus under the scorching sun to absorb
-nutrients in the endless desert. **If you are a thirsty and honey geek and
-focus on finding outside hydration, don't miss it.**
+Hey, nice to meet you, you found this charming tool. Here the _Cactus Tunnel_
+is a TCP tunnel tool over WebSocket and Browser. It can help you open a TCP
+tunnel to the outside world through the browser in an extremely restricted
+environment, just like a cactus under the scorching sun to absorb nutrients
+in the endless desert. **If you are a thirsty and honey geek and focus on
+finding outside hydration, don't miss it.**
 
 <p align="center">
 Like this charming tool? You can give it a star or sponsor me!<br>
@@ -222,4 +222,3 @@ describing the problem that you're looking to resolve and we'll go from there.
 This theme is licensed under the [MIT license](https://opensource.org/licenses/mit-license.php) © JeffreyTse.
 
 <!-- External links -->
-
