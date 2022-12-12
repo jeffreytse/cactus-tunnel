@@ -18,12 +18,14 @@ const myParseInt = (value: string) => {
   return parsedValue;
 };
 
+program.usage("help [command]");
+
 program
   .command("client")
   .description(`runs ${pkg.name} in client mode`)
   .argument(
     "<server>",
-    "tunnel server url, empty is bridge mode e.g. ws://your-tunnel-server:7800"
+    "tunnel server url, empty is bridge mode, e.g. ws://your-tunnel-server:7800"
   )
   .argument("<target>", "tunnel target url, e.g. your-linux-ssh-server:22")
   .option(
