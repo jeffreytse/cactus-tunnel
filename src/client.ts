@@ -102,13 +102,6 @@ class Client implements IClient {
   tcpConnectionHandler = async (local: Socket) => {
     this.logger.info("new client connection...");
 
-    local.on("close", () => {
-      this.meta.clients.splice(this.meta.clients.indexOf(local), 1);
-      this.logger.info("client connection closed!");
-    });
-
-    this.meta.clients.push(local);
-
     let remote: WebSocketStream.WebSocketDuplex | null = null;
 
     const connStr = formConnStr(this.options.server, this.options.target);
@@ -147,8 +140,28 @@ class Client implements IClient {
       });
     }
 
+    this.meta.clients.push(local);
+
+    local
+      .on("error", (err?: Error) => {
+        remote?.destroy();
+        if (err) this.logger.error(err?.message);
+      })
+      .on("close", () => {
+        this.meta.clients.splice(this.meta.clients.indexOf(local), 1);
+        this.logger.info("client connection closed!");
+      });
+
+    remote
+      .on("error", (err?: Error) => {
+        if (err) this.logger.error(err?.message);
+      })
+      .on("close", () => {
+        local.destroy();
+      });
+
     const pipe = () => {
-      const onError: pump.Callback = (err) => {
+      const onError: pump.Callback = (err?: Error) => {
         if (err) this.logger.error(err);
       };
 
@@ -162,8 +175,7 @@ class Client implements IClient {
       pump(local, remote, onError);
     };
 
-    // pipe stream after remote websocket stream connected
-    setTimeout(pipe, 100);
+    pipe();
   };
 
   closeProxyServer = (callback?: (err?: Error) => void) => {

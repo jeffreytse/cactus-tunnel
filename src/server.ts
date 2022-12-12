@@ -18,11 +18,22 @@ export interface IServer {
   options: ServerOptions;
   logger: winston.Logger;
   app: WebServer | null;
-  getTunnelInfo(req: http.IncomingMessage): void;
   wsTunnelRequestHandler: WebsocketRequestHandler;
   close(callback?: (err?: Error) => void): void;
   create(opt: ServerOptions): void;
 }
+
+export const getTunnelData = (req: http.IncomingMessage) => {
+  const result = url.parse(req.url || "", true);
+  const target = (result?.query?.target as string) || "";
+  const [hostname, port] = target.split(":");
+
+  if (isNaN(parseInt(port)) || hostname.length === 0) {
+    return;
+  }
+
+  return { hostname, port: +port };
+};
 
 class Server {
   options: ServerOptions = {
@@ -43,31 +54,19 @@ class Server {
     this.create(options);
   }
 
-  getTunnelInfo = (req: http.IncomingMessage) => {
-    const result = url.parse(req.url || "", true);
-    const target = (result?.query?.target as string) || "";
-    const [hostname, port] = target.split(":");
-
-    if (isNaN(parseInt(port)) || hostname.length === 0) {
-      return;
-    }
-
-    return { hostname, port: +port };
-  };
-
   wsTunnelRequestHandler: WebsocketRequestHandler = (ws, req) => {
     const remoteIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     this.logger.info(`client request from: ${remoteIP}`);
 
-    const tunnelInfo = this.getTunnelInfo(req);
+    const tunnelInfo = getTunnelData(req);
 
     if (!tunnelInfo) {
       this.logger.error("invalid tunnel info!");
       return;
     }
 
-    // convert ws instance to stream
-    const local = WebSocketStream(ws, {
+    // convert client ws instance to stream
+    const client = WebSocketStream(ws, {
       binary: true,
     });
 
@@ -79,14 +78,30 @@ class Server {
     );
 
     const remote = createConnection(tunnelInfo.port, tunnelInfo.hostname);
-    remote.on("error", this.logger.error);
 
-    const onStreamError: pump.Callback = (err) => {
-      if (err) this.logger.error(err);
+    client.on("close", () => {
+      remote.destroy();
+    });
+
+    remote
+      .on("error", (err?: Error) => {
+        client.destroy();
+        if (err) this.logger.error(err.message);
+      })
+      .on("close", () => {
+        client.destroy();
+      });
+
+    const pipe = () => {
+      const onStreamError: pump.Callback = (err) => {
+        if (err) this.logger.error(err);
+      };
+
+      pump(client, remote, onStreamError);
+      pump(remote, client, onStreamError);
     };
 
-    pump(local, remote, onStreamError);
-    pump(remote, local, onStreamError);
+    pipe();
   };
 
   close = (callback?: (err?: Error) => void) => {
