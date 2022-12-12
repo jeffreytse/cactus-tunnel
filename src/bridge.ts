@@ -16,13 +16,21 @@ export type BridgeCtrlData =
       data?: object;
     };
 
+type BridgeStatus = "disconnected" | "waiting" | "connected";
+
 type Bridge = {
   client: {
     ctrl: WebSocketStream.WebSocketDuplex | null;
     data: WebSocketStream.WebSocketDuplex | null;
   };
-  status: "disconnected" | "waiting" | "connected";
+  status: BridgeStatus;
 };
+
+type BridgeData = {
+  tunnelStatus: BridgeStatus;
+};
+
+type CustomWindow = typeof window & { bridgeData: BridgeData };
 
 const bridge: Bridge = {
   client: {
@@ -137,6 +145,15 @@ const checkConnection = (callback?: () => void) => {
   func();
 };
 
+const updatePageStatus = () => {
+  setInterval(() => {
+    const tunnelStatus = bridge.status;
+    (window as CustomWindow).bridgeData = {
+      tunnelStatus,
+    };
+  }, 500);
+};
+
 export const createBridge = (clientUrl: string): void => {
   const hasWebSocket = "WebSocket" in window;
 
@@ -146,4 +163,5 @@ export const createBridge = (clientUrl: string): void => {
   }
 
   checkConnection(() => connectToClient(clientUrl));
+  updatePageStatus();
 };

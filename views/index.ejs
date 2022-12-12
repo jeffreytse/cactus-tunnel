@@ -1,16 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <title>Cactus Tunnel Bridge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="./img/cactus-tunnel.png" />
 </head>
+
 <body class="container">
 
 <header>
 </header>
 
 <main>
-  <div class="jumbotron">
+  <div align="center">
+    <br/>
+    <a href="https://github.com/jeffreytse/cactus-tunnel">
+      <img alt="cactus-tunnel logo" src="./img/cactus-tunnel.png" width="260">
+    </a>
+
     <h1>Cactus Tunnel Bridge</h1>
-    <p>Welcome to Cactus Tunnel Bridge</p>
+
+    <h4>
+      🌵 A charming TCP tunnel over WebSocket and Browser.
+    </h4>
+
+    <div class="tunnel-status">Tunnel Status: <span class="value">n/a</span></div>
   </div>
 </main>
 
@@ -18,6 +32,17 @@
 </footer>
 
 <script src="./js/bundle.js"></script>
+<script>
+  const statusEl = document.querySelector(".tunnel-status .value");
+  let lastStatus = "";
+  setInterval(() => {
+    if (lastStatus === window.bridgeData.tunnelStatus) {
+      return;
+    }
+    lastStatus = window.bridgeData.tunnelStatus
+    statusEl.innerHTML = lastStatus;
+  }, 500);
+</script>
 
 </body>
 </html>
