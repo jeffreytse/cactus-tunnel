@@ -52,10 +52,10 @@
 
 Hey, nice to meet you, you found this charming tool. Here the _Cactus Tunnel_
 is a TCP tunnel tool over WebSocket and Browser. It can help you open a TCP
-tunnel to the outside world through the browser in an extremely restricted
-environment, just like a cactus under the scorching sun to absorb nutrients
-in the endless desert. **If you are a thirsty and honey geek and focus on
-finding outside hydration, don't miss it.**
+tunnel to another side of the world through the browser in an extremely
+restricted environment, just like a cactus under the scorching sun to absorb
+nutrients in the endless desert. **If you are a thirsty and honey geek and
+focus on finding new hydration, don't miss it.**
 
 <p align="center">
 Like this charming tool? You can give it a star or sponsor me!<br>
@@ -194,7 +194,7 @@ ssh -p 7700 -D 3128 -C -N <your-username>@localhost
 - `-N`: do not execute remote commands, useful for just forwarding ports
 
 When you connect to the port `7700`, it will auto connect to the specified
-tunnel server `localhost:7800` and connect to target host `<your-ssh-server>:22`.
+tunnel server `localhost:7800` and connect to target host `<your-ssh-server>:22`
 Now you have an SSH tunnel between your computer and the remote host, in
 this example `<your-ssh-server>:22`.
 
@@ -242,6 +242,13 @@ you through how to create a pull request.
 
 You can start by [opening an issue](https://github.com/jeffreytse/cactus-tunnel/issues/new)
 describing the problem that you're looking to resolve and we'll go from there.
+
+## Credits
+
+- [express](https://github.com/expressjs/express) - Fast, unopinionated, minimalist web framework for node.
+- [websocket-stream](https://github.com/maxogden/websocket-stream) - WebSockets with the node stream API.
+- [pump](https://github.com/mafintosh/pump) - Pipe streams together and close all of them if one of them closes.
+- [winston](https://github.com/winstonjs/winston) - A logger for just about everything.
 
 ## License
 
