@@ -101,7 +101,7 @@ class Server {
   };
 
   create = (opt: ServerOptions) => {
-    assignDeep(this.options, opt);
+    this.options = assignDeep(this.options, opt) as ServerOptions;
 
     if (this.options.logger?.level !== undefined) {
       this.logger.level = this.options.logger.level;

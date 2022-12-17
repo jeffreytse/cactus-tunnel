@@ -325,7 +325,7 @@ class Client implements IClient {
   };
 
   create = (opt: ClientOptions) => {
-    assignDeep(this.options, opt);
+    this.options = assignDeep(this.options, opt) as ClientOptions;
     if (this.options.logger?.level !== undefined) {
       this.logger.level = this.options.logger.level;
     }

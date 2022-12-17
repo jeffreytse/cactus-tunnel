@@ -50,13 +50,15 @@ export const createLogger = (opt: LoggerOptions = {}) => {
 };
 
 export const assignDeep = (target: object, source: object) => {
+  target = JSON.parse(JSON.stringify(target));
   for (const [key, value] of Object.entries(source)) {
     if (typeof target[key] === "object" && typeof value === "object") {
-      assignDeep(target[key], value);
+      target[key] = assignDeep(target[key], value);
     } else {
       target[key] = value;
     }
   }
+  return target;
 };
 
 export const formConnStr = (proxyServer: string, proxyTarget: string) => {
