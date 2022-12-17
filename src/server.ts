@@ -1,10 +1,9 @@
 import { createConnection } from "net";
 import http from "http";
 import pump from "pump";
-import url from "url";
 import { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
-import { assignDeep, createLogger, LoggerOptions } from "./utils";
+import { assignDeep, createLogger, LoggerOptions, parseConnStr } from "./utils";
 import { createWebServer, HostAddressInfo, WebServer } from "./core";
 import winston from "winston";
 
@@ -22,18 +21,6 @@ export interface IServer {
   close(callback?: (err?: Error) => void): void;
   create(opt: ServerOptions): void;
 }
-
-export const getTunnelData = (req: http.IncomingMessage) => {
-  const result = url.parse(req.url || "", true);
-  const target = (result?.query?.target as string) || "";
-  const [hostname, port] = target.split(":");
-
-  if (isNaN(parseInt(port)) || hostname.length === 0) {
-    return;
-  }
-
-  return { hostname, port: +port };
-};
 
 class Server {
   options: ServerOptions = {
@@ -58,7 +45,7 @@ class Server {
     const remoteIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     this.logger.info(`client request from: ${remoteIP}`);
 
-    const tunnelInfo = getTunnelData(req);
+    const tunnelInfo = parseConnStr(req.url);
 
     if (!tunnelInfo) {
       this.logger.error("invalid tunnel info!");

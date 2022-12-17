@@ -12,7 +12,13 @@ import {
   WebServerOptions,
 } from "./core";
 import { BridgeCtrlData } from "./bridge";
-import { sleep, createLogger, LoggerOptions, assignDeep } from "./utils";
+import {
+  sleep,
+  createLogger,
+  LoggerOptions,
+  assignDeep,
+  formConnStr,
+} from "./utils";
 import net from "net";
 import open from "open";
 import winston from "winston";
@@ -56,12 +62,6 @@ export interface IClient {
   close(callback?: (err?: Error) => void): void;
   create(opt: ClientOptions): void;
 }
-
-export const formConnStr = (proxyServer: string, proxyTarget: string) => {
-  proxyServer += proxyServer.slice(-1) === "/" ? "" : "/";
-  const encodedTarget = encodeURIComponent(proxyTarget);
-  return `${proxyServer}tunnel?target=${encodedTarget}`;
-};
 
 class Client implements IClient {
   options: ClientOptions = {

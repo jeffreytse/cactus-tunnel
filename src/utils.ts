@@ -1,3 +1,4 @@
+import url from "url";
 import winston from "winston";
 
 // sleep function
@@ -57,3 +58,22 @@ export const assignDeep = (target: object, source: object) => {
     }
   }
 };
+
+export const formConnStr = (proxyServer: string, proxyTarget: string) => {
+  proxyServer += proxyServer.slice(-1) === "/" ? "" : "/";
+  const encodedTarget = encodeURIComponent(proxyTarget);
+  return `${proxyServer}tunnel?target=${encodedTarget}`;
+};
+
+export const parseConnStr = (value: string) => {
+  const result = url.parse(value || "", true);
+  const target = (result?.query?.target as string) || "";
+  const [hostname, port] = target.split(":");
+
+  if (isNaN(parseInt(port)) || hostname.length === 0) {
+    return;
+  }
+
+  return { hostname, port: +port };
+};
+
