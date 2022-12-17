@@ -20,7 +20,7 @@
   "scripts": {
     "start": "npm run build && npm run serve",
     "start:cli": "npm run build && npm run cli",
-    "build": "npm run lint && tsc && npm run bundle",
+    "build": "tsc && npm run bundle",
     "bundle": "browserify dist/src/bundle.js -o public/js/bundle.js",
     "serve": "node dist/src/index.js",
     "cli": "node dist/bin/cactus-tunnel.js",
