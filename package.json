@@ -25,7 +25,7 @@
     "serve": "node dist/src/index.js",
     "cli": "node dist/bin/cactus-tunnel.js",
     "lint": "eslint . --ext .ts",
-    "test": "npm run build && jest --silent false dist/tests/*.test.js",
+    "test": "npm run build && jest",
     "prepublish": "npm run build",
     "prepublishOnly": "npm test"
   },
