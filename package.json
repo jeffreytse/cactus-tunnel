@@ -1,6 +1,6 @@
 {
   "name": "cactus-tunnel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TCP tunnel over WebSocket and Browser",
   "main": "dist/src/index.js",
   "bin": {
@@ -15,7 +15,11 @@
     "tcp",
     "tunnel",
     "websocket",
-    "http"
+    "http",
+    "browser",
+    "proxy",
+    "cli",
+    "socks5"
   ],
   "scripts": {
     "start": "npm run build && npm run serve",
