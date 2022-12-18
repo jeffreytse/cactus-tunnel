@@ -40,7 +40,7 @@ describe("tunnel modes", () => {
 
     test(`should return ${pkg.name} when the tunnel established`, async () => {
       const res = await axios.get(
-        `http://${config.server.hostname}:${config.server.port}/version`
+        `http://${config.client.hostname}:${config.client.port}/version`
       );
       expect(res.data.name).toBe(pkg.name);
     });
@@ -71,6 +71,13 @@ describe("tunnel modes", () => {
       try {
         // create tunnel bridge
         const page = await browser.newPage();
+
+        page.on("console", (message) =>
+          console.log(
+            `${message.type().substr(0, 3).toUpperCase()} ${message.text()}`
+          )
+        );
+
         await page.goto(client.getBridgeUrl());
 
         while (!client.isBridgeOpened()) {
