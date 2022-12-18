@@ -61,10 +61,13 @@ export const assignDeep = (target: object, source: object) => {
   return target;
 };
 
-export const formConnStr = (proxyServer: string, proxyTarget: string) => {
-  proxyServer += proxyServer.slice(-1) === "/" ? "" : "/";
-  const encodedTarget = encodeURIComponent(proxyTarget);
-  return `${proxyServer}tunnel?target=${encodedTarget}`;
+export const formConnStr = (server: string, target: string) => {
+  // windows doesn't support to connect to address 0.0.0.0:<port>
+  server = server.replace("0.0.0.0", "127.0.0.1")
+  target = target.replace("0.0.0.0", "127.0.0.1")
+  server += server.slice(-1) === "/" ? "" : "/";
+  const encodedTarget = encodeURIComponent(target);
+  return `${server}tunnel?target=${encodedTarget}`;
 };
 
 export const parseConnStr = (value: string) => {
@@ -78,4 +81,3 @@ export const parseConnStr = (value: string) => {
 
   return { hostname, port: +port };
 };
-

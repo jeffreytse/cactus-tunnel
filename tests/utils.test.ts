@@ -2,8 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import { assignDeep, formConnStr, parseConnStr } from "../src/utils";
 
 describe("testing utils functionality", () => {
-  const server = "ws://tunnel-server:7800";
-  const target = "ssh-server:22";
+  const server = "ws://127.0.0.1:7800";
+  const target = "127.0.0.1:22";
   const encodedTarget = encodeURIComponent(target);
   const connStr = `${server}/tunnel?target=${encodedTarget}`;
 
@@ -40,6 +40,10 @@ describe("testing utils functionality", () => {
 
     test(`should return ${connStr}`, () => {
       expect(formConnStr(`${server}/`, target)).toEqual(connStr);
+    });
+
+    test(`should return ${connStr}`, () => {
+      expect(formConnStr("ws://0.0.0.0:7800", "0.0.0.0:22")).toEqual(connStr);
     });
   });
 
