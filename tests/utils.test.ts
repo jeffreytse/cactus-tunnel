@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   assignDeep,
+  fixAddress,
   formConnStr,
   humanizeBytes,
   parseConnStr,
@@ -53,6 +54,12 @@ describe("testing utils functionality", () => {
 
     test(`should return 1 GB`, () => {
       expect(humanizeBytes(1024 * 1024 * 1024)).toEqual("1 GB");
+    });
+  });
+
+  describe("fix binding address", () => {
+    test(`should return `, () => {
+      expect(fixAddress("0.0.0.0:80")).toBe("127.0.0.1:80");
     });
   });
 
