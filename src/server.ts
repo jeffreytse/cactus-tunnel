@@ -66,17 +66,22 @@ class Server {
 
     const remote = createConnection(tunnelInfo.port, tunnelInfo.hostname);
 
-    client.on("close", () => {
-      remote.destroy();
-    });
-
-    remote
+    client
       .on("error", (err?: Error) => {
-        client.destroy();
         if (err) this.logger.error(err.message);
       })
       .on("close", () => {
-        client.destroy();
+        remote.end(() => remote.destroy());
+        this.logger.info("client connection closed!");
+      });
+
+    remote
+      .on("error", (err?: Error) => {
+        if (err) this.logger.error(err.message);
+      })
+      .on("close", () => {
+        client.end(() => client.destroy());
+        this.logger.info("remote connection closed!");
       });
 
     const pipe = () => {
@@ -94,7 +99,7 @@ class Server {
   close = (callback?: (err?: Error) => void) => {
     this.logger.info("tunnel server is closing...");
     this.app?.server.close((err?: Error) => {
-      this.logger.info("tunnel server closed");
+      this.logger.info("tunnel server closed!");
       this.app?.server.unref();
       callback && callback(err);
     });

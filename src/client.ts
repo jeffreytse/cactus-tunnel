@@ -144,12 +144,12 @@ class Client implements IClient {
 
     local
       .on("error", (err?: Error) => {
-        remote?.destroy();
         if (err) this.logger.error(err?.message);
       })
       .on("close", () => {
+        remote?.end(() => remote?.destroy());
         this.meta.clients.splice(this.meta.clients.indexOf(local), 1);
-        this.logger.info("client connection closed!");
+        this.logger.info("local connection closed!");
       });
 
     remote
@@ -157,7 +157,8 @@ class Client implements IClient {
         if (err) this.logger.error(err?.message);
       })
       .on("close", () => {
-        local.destroy();
+        local.end(() => local.destroy());
+        this.logger.info("remote connection closed!");
       });
 
     const pipe = () => {
@@ -179,10 +180,12 @@ class Client implements IClient {
   };
 
   closeProxyServer = (callback?: (err?: Error) => void) => {
-    this.meta.clients.forEach((client) => client.destroy());
+    this.meta.clients.forEach((client) => client.end(() => client.destroy()));
     this.meta.clients = [];
-    this.meta.tcpServer?.close(callback);
-    this.meta.tcpServer?.unref();
+    this.meta.tcpServer?.close((err?: Error) => {
+      this.meta.tcpServer?.unref();
+      callback && callback(err);
+    });
     this.meta.tcpServer = null;
   };
 
@@ -311,7 +314,7 @@ class Client implements IClient {
   close = (callback?: (err?: Error) => void) => {
     this.logger.info("tunnel client is closing...");
     const cb = (err?: Error) => {
-      this.logger.info("tunnel client closed");
+      this.logger.info("tunnel client closed!");
       callback && callback(err);
     };
     this.closeProxyServer(() => {

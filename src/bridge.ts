@@ -62,7 +62,7 @@ const connectToRemote = (connStr: string) => {
       if (err) {
         logger.error(`server error: ${err.message}!`);
       }
-      bridge.client.data?.destroy();
+      bridge.client.data?.end(() => bridge.client.data?.destroy());
       logger.info(`server closed!`);
     });
 
