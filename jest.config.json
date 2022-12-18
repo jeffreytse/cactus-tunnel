@@ -1,6 +1,7 @@
 {
   "modulePathIgnorePatterns": ["<rootDir>/dist/package.json"],
   "testMatch": ["<rootDir>/dist/tests/*.test.js"],
+  "testTimeout": 10000,
   "maxConcurrency": 1,
   "maxWorkers": 1
 }
