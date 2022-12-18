@@ -63,8 +63,8 @@ export const assignDeep = (target: object, source: object) => {
 
 export const formConnStr = (server: string, target: string) => {
   // windows doesn't support to connect to address 0.0.0.0:<port>
-  server = server.replace("0.0.0.0", "127.0.0.1")
-  target = target.replace("0.0.0.0", "127.0.0.1")
+  server = server.replace("0.0.0.0", "127.0.0.1");
+  target = target.replace("0.0.0.0", "127.0.0.1");
   server += server.slice(-1) === "/" ? "" : "/";
   const encodedTarget = encodeURIComponent(target);
   return `${server}tunnel?target=${encodedTarget}`;
