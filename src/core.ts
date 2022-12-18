@@ -3,7 +3,10 @@ import expressWs from "express-ws";
 import http from "http";
 import { createServer, Server } from "net";
 import path from "path";
+import { createLogger } from "./utils";
 import pkg from "../package.json";
+
+const logger = createLogger({ label: "cactus-tunnel:client" });
 
 export type HostAddressInfo = {
   port: number;
@@ -39,6 +42,7 @@ export const createWebServer = (opt: WebServerOptions): WebServer => {
 
   // set route for version
   app.get("/version", (_, res) => {
+    logger.info("request version");
     res.setHeader("Content-Type", "application/json");
     res.end(
       JSON.stringify({
