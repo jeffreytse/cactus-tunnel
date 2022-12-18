@@ -17,31 +17,46 @@ export type BridgeCtrlData =
     };
 
 type BridgeStatus = "disconnected" | "waiting" | "connected";
+type DataStatics = { send: number; recv: number };
 
 type Bridge = {
   client: {
     ctrl: WebSocketStream.WebSocketDuplex | null;
     data: WebSocketStream.WebSocketDuplex | null;
   };
+  statics: DataStatics;
   status: BridgeStatus;
+  connStr: string;
 };
 
 type BridgeData = {
-  tunnelStatus: BridgeStatus;
+  status: BridgeStatus;
+  statics: DataStatics;
 };
 
-type CustomWindow = typeof window & { bridgeData: BridgeData };
+export type CustomWindow = typeof window & { bridgeMeta: BridgeData };
 
 const bridge: Bridge = {
   client: {
     ctrl: null,
     data: null,
   },
+  statics: {
+    send: 0,
+    recv: 0,
+  },
   status: "disconnected",
+  connStr: "",
 };
 
 const connectToRemote = (connStr: string) => {
   logger.info(`connecting to ${connStr}...`);
+
+  if (bridge.connStr !== connStr) {
+    bridge.connStr = connStr;
+    bridge.statics.send = 0;
+    bridge.statics.recv = 0;
+  }
 
   const client = WebSocketStream(bridge.client.data?.socket, {
     binary: true,
@@ -70,8 +85,12 @@ const connectToRemote = (connStr: string) => {
     logger.error("tunnel stream error!");
   };
 
-  pump(client, server, onStreamError);
-  pump(server, client, onStreamError);
+  pump(client, server, onStreamError).on("data", (data) => {
+    bridge.statics.recv += data.byteLength;
+  });
+  pump(server, client, onStreamError).on("data", (data) => {
+    bridge.statics.send += data.byteLength;
+  });
 
   const ctrlData: BridgeCtrlData = { type: "connected" };
   bridge.client.ctrl?.socket.send(JSON.stringify(ctrlData));
@@ -145,12 +164,19 @@ const checkConnection = (callback?: () => void) => {
   func();
 };
 
-const updatePageStatus = () => {
+const updateBridgeMeta = () => {
+  (window as CustomWindow).bridgeMeta = {
+    status: bridge.status,
+    statics: {
+      send: bridge.statics.send,
+      recv: bridge.statics.recv,
+    },
+  };
   setInterval(() => {
-    const tunnelStatus = bridge.status;
-    (window as CustomWindow).bridgeData = {
-      tunnelStatus,
-    };
+    const bridgeMeta = (window as CustomWindow).bridgeMeta;
+    bridgeMeta.status = bridge.status;
+    bridgeMeta.statics.send = bridge.statics.send;
+    bridgeMeta.statics.recv = bridge.statics.recv;
   }, 500);
 };
 
@@ -163,5 +189,5 @@ export const createBridge = (clientUrl: string): void => {
   }
 
   checkConnection(() => connectToClient(clientUrl));
-  updatePageStatus();
+  updateBridgeMeta();
 };

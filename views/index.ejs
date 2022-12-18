@@ -25,6 +25,8 @@
     </h4>
 
     <div class="tunnel-status">Tunnel Status: <span class="value">n/a</span></div>
+    <div class="tunnel-send">Send: <span class="value">n/a</span></div>
+    <div class="tunnel-recv">Recv: <span class="value">n/a</span></div>
   </div>
 </main>
 
@@ -32,17 +34,6 @@
 </footer>
 
 <script src="./js/bundle.js"></script>
-<script>
-  const statusEl = document.querySelector(".tunnel-status .value");
-  let lastStatus = "";
-  setInterval(() => {
-    if (lastStatus === window.bridgeData.tunnelStatus) {
-      return;
-    }
-    lastStatus = window.bridgeData.tunnelStatus
-    statusEl.innerHTML = lastStatus;
-  }, 500);
-</script>
 
 </body>
 </html>

@@ -1,5 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import { assignDeep, formConnStr, parseConnStr } from "../src/utils";
+import {
+  assignDeep,
+  formConnStr,
+  humanizeBytes,
+  parseConnStr,
+} from "../src/utils";
 
 describe("testing utils functionality", () => {
   const server = "ws://127.0.0.1:7800";
@@ -30,6 +35,24 @@ describe("testing utils functionality", () => {
         },
         c: "c",
       });
+    });
+  });
+
+  describe("humanize bytes", () => {
+    test(`should return 0 Bytes`, () => {
+      expect(humanizeBytes(0)).toEqual("0 Bytes");
+    });
+
+    test(`should return 1 KB`, () => {
+      expect(humanizeBytes(1024)).toEqual("1 KB");
+    });
+
+    test(`should return 1 MB`, () => {
+      expect(humanizeBytes(1024 * 1024)).toEqual("1 MB");
+    });
+
+    test(`should return 1 GB`, () => {
+      expect(humanizeBytes(1024 * 1024 * 1024)).toEqual("1 GB");
     });
   });
 
