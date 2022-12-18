@@ -14,6 +14,10 @@
 </h4>
 
 <p align="center">
+  <a href="https://github.com/jeffreytse/cactus-tunnel/actions/workflows/tests.yml">
+    <img src="https://github.com/jeffreytse/cactus-tunnel/actions/workflows/tests.yml/badge.svg"
+      alt="build" />
+  </a>
 
   <a href="https://badge.fury.io/js/cactus-tunnel">
     <img src="https://badge.fury.io/js/cactus-tunnel.svg"
