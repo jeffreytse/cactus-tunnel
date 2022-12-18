@@ -9,7 +9,7 @@ const config = {
   },
   bridge: {
     port: parseInt(process.env.CT_BRIDGE_PORT || "7900"),
-    hostname: process.env.CT_BRIDGE_HOSTNAME || "127.0.0.1",
+    hostname: process.env.CT_BRIDGE_HOSTNAME || "0.0.0.0",
   },
 };
 

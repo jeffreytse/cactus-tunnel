@@ -148,7 +148,7 @@ Options:
   -b, --bridge-mode                 enable tunnel bridge mode
   -nb, --no-browser                 disable auto open browser when in bridge mode
   -bp, --bridge-port <port>         tunnel bridge listening port (default: 7900)
-  -bh, --bridge-hostname <address>  tunnel bridge listening hostname (default: "127.0.0.1")
+  -bh, --bridge-hostname <address>  tunnel bridge listening hostname (default: "0.0.0.0")
   -v, --verbose                     enable verbose output
   --help                            display help for command
 ```
