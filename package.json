@@ -1,6 +1,6 @@
 {
   "name": "cactus-tunnel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "TCP tunnel over WebSocket and Browser",
   "main": "src/index.js",
   "types": "src/index.d.ts",
