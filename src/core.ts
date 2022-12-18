@@ -6,7 +6,10 @@ import path from "path";
 import { createLogger } from "./utils";
 import pkg from "../package.json";
 
-const logger = createLogger({ label: "cactus-tunnel:client" });
+export const logger = createLogger({
+  label: "cactus-tunnel:core",
+  silent: true,
+});
 
 export type HostAddressInfo = {
   port: number;

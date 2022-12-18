@@ -10,6 +10,7 @@ import {
   TcpServerOptions,
   WebServer,
   WebServerOptions,
+  logger as coreLogger,
 } from "./core";
 import { BridgeCtrlData } from "./bridge";
 import {
@@ -329,11 +330,14 @@ class Client implements IClient {
 
   create = (opt: ClientOptions) => {
     this.options = assignDeep(this.options, opt) as ClientOptions;
+
     if (this.options.logger?.level !== undefined) {
       this.logger.level = this.options.logger.level;
+      coreLogger.level = this.options.logger.level;
     }
     if (this.options.logger?.silent !== undefined) {
       this.logger.silent = this.options.logger.silent;
+      coreLogger.silent = this.options.logger.silent;
     }
 
     if (opt.bridge) {

@@ -4,7 +4,12 @@ import pump from "pump";
 import { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
 import { assignDeep, createLogger, LoggerOptions, parseConnStr } from "./utils";
-import { createWebServer, HostAddressInfo, WebServer } from "./core";
+import {
+  createWebServer,
+  HostAddressInfo,
+  WebServer,
+  logger as coreLogger,
+} from "./core";
 import winston from "winston";
 
 type ServerOptions = {
@@ -110,9 +115,11 @@ class Server {
 
     if (this.options.logger?.level !== undefined) {
       this.logger.level = this.options.logger.level;
+      coreLogger.level = this.options.logger.level;
     }
     if (this.options.logger?.silent !== undefined) {
       this.logger.silent = this.options.logger.silent;
+      coreLogger.silent = this.options.logger.silent;
     }
 
     const app = createWebServer({
