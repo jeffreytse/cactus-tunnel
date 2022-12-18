@@ -54,10 +54,7 @@ describe("tunnel modes", () => {
         listen: config.client,
         server: `ws://${config.server.hostname}:${config.server.port}`,
         target: `${config.server.hostname}:${config.server.port}`,
-        bridge: {
-          port: config.bridge.port,
-          hostname: config.bridge.hostname,
-        },
+        bridge: config.bridge,
         callback: () => done(),
       });
     });
@@ -72,11 +69,14 @@ describe("tunnel modes", () => {
         // create tunnel bridge
         const page = await browser.newPage();
 
-        page.on("console", (message) =>
-          console.log(
-            `${message.type().substr(0, 3).toUpperCase()} ${message.text()}`
-          )
-        );
+        // output log according to client logger options
+        if (client.options.logger?.silent === false) {
+          page.on("console", (message) =>
+            console.log(
+              `${message.type().substr(0, 3).toUpperCase()} ${message.text()}`
+            )
+          );
+        }
 
         await page.goto(client.getBridgeUrl());
 
