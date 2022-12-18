@@ -37,11 +37,11 @@ export const createWebServer = (opt: WebServerOptions): WebServer => {
   });
 
   // serve static files
-  app.use(express.static(path.join(__dirname, "../../public")));
+  app.use(express.static(path.join(__dirname, "../public")));
 
   // set the view engine to ejs
   app.set("view engine", "ejs");
-  app.set("views", path.join(__dirname, "../../views"));
+  app.set("views", path.join(__dirname, "../views"));
 
   // set route for version
   app.get("/version", (_, res) => {
