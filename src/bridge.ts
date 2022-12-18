@@ -1,6 +1,6 @@
 import WebSocketStream from "websocket-stream";
 import pump from "pump";
-import { createLogger } from "./utils";
+import { createLogger, fixAddress } from "./utils";
 
 const logger = createLogger({ label: "cactus-tunnel:bridge" });
 
@@ -188,6 +188,6 @@ export const createBridge = (clientUrl: string): void => {
     return;
   }
 
-  checkConnection(() => connectToClient(clientUrl));
+  checkConnection(() => connectToClient(fixAddress(clientUrl)));
   updateBridgeMeta();
 };

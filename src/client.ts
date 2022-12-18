@@ -19,6 +19,7 @@ import {
   LoggerOptions,
   assignDeep,
   formConnStr,
+  fixAddress,
 } from "./utils";
 import net from "net";
 import open from "open";
@@ -275,7 +276,7 @@ class Client implements IClient {
   };
 
   getBridgeUrl = () => {
-    const hostname = this.options.bridge?.hostname || "localhost";
+    const hostname = fixAddress(this.options.bridge?.hostname || "localhost");
     return `http://${hostname}:${this.options.bridge?.port}`;
   };
 
