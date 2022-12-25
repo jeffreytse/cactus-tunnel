@@ -77,7 +77,7 @@ program
     if (options.bridgeMode) {
       const url = `http://${options.bridgeHostname}:${options.bridgePort}`;
       console.info(`bridge listening on: ${url}`);
-      if (!options.noBrowser) {
+      if (options.browser) {
         client.autoOpenBridge(url);
       }
     }
