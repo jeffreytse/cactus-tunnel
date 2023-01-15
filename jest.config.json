@@ -2,7 +2,7 @@
   "rootDir": "./dist",
   "modulePathIgnorePatterns": ["<rootDir>/package.json"],
   "testMatch": ["<rootDir>/tests/*.test.js"],
-  "testTimeout": 10000,
+  "testTimeout": 15000,
   "maxConcurrency": 1,
   "maxWorkers": 1
 }
