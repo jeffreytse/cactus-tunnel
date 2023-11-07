@@ -158,24 +158,39 @@ Options:
 Start a tunnel client:
 
 ```sh
-cactus-tunnel client -b ws://<your-tunnel-server>:7800 api.ipify.com:80
+cactus-tunnel client -b ws://<your-tunnel-server>:7800 ip-api.com:80
 ```
 
 This command will start a server at address `localhost:7700` in bridge mode,
 and open the tunnel bridge on the web browser.
 
 ```sh
-curl http://localhost:7700/\?format\=json
+curl http://localhost:7700/json/8.8.8.8
 ```
 
 When you connect to the port `7700`, it will auto connect to the specified
 tunnel server `<your-tunnel-server>:7800` and connect to target host
-`api.ipify:80`, you will get your server ip address through [the IP API lookup service](https://www.ipify.com),
+`ip-api.com:80`, you will get your server ip address through [the IP API lookup service](https://ip-api.com/),
 the response content is similar as below:
 
 ```sh
-$ curl http://localhost:7700/\?format\=json
-{"ip":"201.xxx.xxx.138"}%
+$ curl http://localhost:7700/json/8.8.8.8 | jq
+{
+  "status": "success",
+  "country": "United States",
+  "countryCode": "US",
+  "region": "VA",
+  "regionName": "Virginia",
+  "city": "Ashburn",
+  "zip": "20149",
+  "lat": 39.03,
+  "lon": -77.5,
+  "timezone": "America/New_York",
+  "isp": "Google LLC",
+  "org": "Google Public DNS",
+  "as": "AS15169 Google LLC",
+  "query": "8.8.8.8"
+}
 ```
 
 ### SSH SOCKS5 Proxy
