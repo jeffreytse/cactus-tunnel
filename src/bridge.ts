@@ -50,6 +50,7 @@ const bridge: Bridge = {
 };
 
 const connectToRemote = (connStr: string) => {
+  if (!bridge.client.data) return;
   logger.info(`connecting to ${connStr}...`);
 
   if (bridge.connStr !== connStr) {
@@ -58,7 +59,7 @@ const connectToRemote = (connStr: string) => {
     bridge.statics.recv = 0;
   }
 
-  const client = WebSocketStream(bridge.client.data?.socket, {
+  const client = WebSocketStream(bridge.client.data.socket, {
     binary: true,
     highWaterMark: 1024 * 1024,
   });

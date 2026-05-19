@@ -4,43 +4,47 @@ declare module "websocket-stream" {
   // Original definitions by: Ben Burns <https://github.com/benjamincburns>
 
   import * as ws from "ws";
-  import { Duplex } from "stream";
+  import { Duplex, DuplexOptions } from "stream";
   import * as http from "http";
 
   declare namespace WebSocketStream {
-    type WebSocket = ws;
+    type WebSocket = ws.WebSocket;
     type WebSocketDuplex = Duplex & { socket: WebSocket };
 
-    class Server extends WebSocket.Server {
+    interface Options extends ws.ClientOptions, DuplexOptions {
+      binary?: boolean;
+    }
+
+    class Server extends ws.Server {
       on(
         event: "connection",
         cb: (
-          this: WebSocket,
-          socket: WebSocket,
+          this: ws.WebSocket,
+          socket: ws.WebSocket,
           request: http.IncomingMessage
         ) => void
       ): this;
-      on(event: "error", cb: (this: WebSocket, error: Error) => void): this;
+      on(event: "error", cb: (this: ws.WebSocket, error: Error) => void): this;
       on(
         event: "headers",
         cb: (
-          this: WebSocket,
+          this: ws.WebSocket,
           headers: string[],
           request: http.IncomingMessage
         ) => void
       ): this;
-      on(event: "listening", cb: (this: WebSocket) => void): this;
+      on(event: "listening", cb: (this: ws.WebSocket) => void): this;
       on(
         event: "stream",
         cb: (
-          this: WebSocket,
+          this: ws.WebSocket,
           stream: WebSocketDuplex,
           request: http.IncomingMessage
         ) => void
       ): this;
       on(
         event: string | symbol,
-        listener: (this: WebSocket, ...args: object[]) => void
+        listener: (this: ws.WebSocket, ...args: object[]) => void
       ): this;
     }
 
@@ -55,7 +59,7 @@ declare module "websocket-stream" {
       callback?: ConnectionListenerCallback
     ): void;
 
-    interface ServerOptions extends WebSocket.ServerOptions {
+    interface ServerOptions extends ws.ServerOptions {
       server: http.Server;
       clientVerify?: (
         req: http.IncomingMessage,
@@ -70,14 +74,14 @@ declare module "websocket-stream" {
   }
 
   declare function WebSocketStream(
-    target: string | WebsocketStream.WebSocket,
-    options?: WebSocket.ClientOptions
+    target: string | ws.WebSocket,
+    options?: WebSocketStream.Options
   ): WebSocketStream.WebSocketDuplex;
 
   declare function WebSocketStream(
-    target: string | WebsocketStream.WebSocket,
+    target: string | ws.WebSocket,
     protocols?: string | string[],
-    options?: WebSocket.ClientOptions
+    options?: WebSocketStream.Options
   ): WebSocketStream.WebSocketDuplex;
 
   export = WebSocketStream;

@@ -48,11 +48,11 @@ export const createLogger = (opt: LoggerOptions = {}) => {
   return logger;
 };
 
-export const assignDeep = (target: object, source: object) => {
-  target = JSON.parse(JSON.stringify(target));
+export const assignDeep = (target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> => {
+  target = JSON.parse(JSON.stringify(target)) as Record<string, unknown>;
   for (const [key, value] of Object.entries(source)) {
-    if (typeof target[key] === "object" && typeof value === "object") {
-      target[key] = assignDeep(target[key], value);
+    if (typeof target[key] === "object" && target[key] !== null && typeof value === "object" && value !== null) {
+      target[key] = assignDeep(target[key] as Record<string, unknown>, value as Record<string, unknown>);
     } else {
       target[key] = value;
     }
