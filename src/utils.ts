@@ -1,4 +1,3 @@
-import url from "url";
 import winston from "winston";
 
 // sleep function
@@ -75,8 +74,8 @@ export const formConnStr = (server: string, target: string) => {
 };
 
 export const parseConnStr = (value: string) => {
-  const result = url.parse(value || "", true);
-  const target = (result?.query?.target as string) || "";
+  const result = new URL(value || "", "http://localhost");
+  const target = result.searchParams.get("target") || "";
   const [hostname, port] = target.split(":");
 
   if (isNaN(parseInt(port)) || hostname.length === 0) {

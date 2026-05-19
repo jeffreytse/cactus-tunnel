@@ -1,6 +1,3 @@
-// import all modules for bundle
-
-import url from "url";
 import { humanizeBytes } from "./utils";
 import { createBridge, CustomWindow } from "./bridge";
 
@@ -53,11 +50,9 @@ const autoUpdatePageInfo = () => {
 
 // initialize bridge
 const initBridge = () => {
-  const result = url.parse(window.location.href, true);
+  const result = new URL(window.location.href);
   const localPort = result.port;
-  const localUrl: string =
-    (result?.query?.localUrl as string) || `localhost:${localPort}`;
-
+  const localUrl = result.searchParams.get("localUrl") || `localhost:${localPort}`;
   createBridge(`ws://${localUrl}`);
 };
 
