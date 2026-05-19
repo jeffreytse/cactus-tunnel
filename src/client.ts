@@ -120,8 +120,8 @@ class Client implements IClient {
       }
 
       remote = WebSocketStream(this.meta.bridge.data, {
-        // websocket-stream options here
         binary: true,
+        highWaterMark: 1024 * 1024,
       });
 
       const ctrlData: BridgeCtrlData = {
@@ -139,10 +139,14 @@ class Client implements IClient {
     } else {
       remote = WebSocketStream(connStr, {
         binary: true,
+        perMessageDeflate: false,
+        highWaterMark: 1024 * 1024,
       });
     }
 
     this.meta.clients.push(local);
+    local.setNoDelay(true);
+    local.setKeepAlive(true, 30000);
 
     local
       .on("error", (err?: Error) => {

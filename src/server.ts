@@ -60,6 +60,7 @@ class Server {
     // convert client ws instance to stream
     const client = WebSocketStream(ws, {
       binary: true,
+      highWaterMark: 1024 * 1024,
     });
 
     this.logger.info(
@@ -70,6 +71,8 @@ class Server {
     );
 
     const remote = createConnection(tunnelInfo.port, tunnelInfo.hostname);
+    remote.setNoDelay(true);
+    remote.setKeepAlive(true, 30000);
 
     client
       .on("error", (err?: Error) => {

@@ -60,9 +60,12 @@ const connectToRemote = (connStr: string) => {
 
   const client = WebSocketStream(bridge.client.data?.socket, {
     binary: true,
+    highWaterMark: 1024 * 1024,
   });
   const server = WebSocketStream(connStr, {
     binary: true,
+    perMessageDeflate: false,
+    highWaterMark: 1024 * 1024,
   });
 
   server
@@ -85,12 +88,11 @@ const connectToRemote = (connStr: string) => {
     logger.error("tunnel stream error!");
   };
 
-  pump(client, server, onStreamError).on("data", (data) => {
-    bridge.statics.recv += data.byteLength;
-  });
-  pump(server, client, onStreamError).on("data", (data) => {
-    bridge.statics.send += data.byteLength;
-  });
+  client.on("data", (data) => { bridge.statics.recv += data.byteLength; });
+  server.on("data", (data) => { bridge.statics.send += data.byteLength; });
+
+  pump(client, server, onStreamError);
+  pump(server, client, onStreamError);
 
   const ctrlData: BridgeCtrlData = { type: "connected" };
   bridge.client.ctrl?.socket.send(JSON.stringify(ctrlData));
@@ -160,7 +162,7 @@ const checkConnection = (callback?: () => void) => {
       callback && callback();
     }
   };
-  setTimeout(() => checkConnection(callback), 100);
+  setTimeout(() => checkConnection(callback), 500);
   func();
 };
 
