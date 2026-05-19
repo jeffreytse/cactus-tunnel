@@ -182,11 +182,16 @@ class Client implements IClient {
   closeProxyServer = (callback?: (err?: Error) => void) => {
     this.meta.clients.forEach((client) => client.end(() => client.destroy()));
     this.meta.clients = [];
-    this.meta.tcpServer?.close((err?: Error) => {
-      this.meta.tcpServer?.unref();
-      callback && callback(err);
-    });
+    const server = this.meta.tcpServer;
     this.meta.tcpServer = null;
+    if (server) {
+      server.close((err?: Error) => {
+        server.unref();
+        callback?.(err);
+      });
+    } else {
+      callback?.();
+    }
   };
 
   createProxyServer = (opt: TcpServerOptions) => {

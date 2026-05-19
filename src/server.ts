@@ -55,6 +55,7 @@ class Server {
 
     if (!tunnelInfo) {
       this.logger.error("invalid tunnel info!");
+      ws.close();
       return;
     }
 

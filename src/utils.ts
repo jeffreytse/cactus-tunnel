@@ -30,11 +30,12 @@ export const parseConnStr = (value: string) => {
   const target = result.searchParams.get("target") || "";
   const [hostname, port] = target.split(":");
 
-  if (isNaN(parseInt(port)) || hostname.length === 0) {
+  const portNum = parseInt(port);
+  if (isNaN(portNum) || portNum <= 0 || portNum > 65535 || hostname.length === 0) {
     return;
   }
 
-  return { hostname, port: +port };
+  return { hostname, port: portNum };
 };
 
 export const humanizeBytes = (bytes: number, decimals?: number) => {
