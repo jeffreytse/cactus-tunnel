@@ -54,40 +54,50 @@
 
 <br>
 
-Hey, nice to meet you, you found this charming tool. Here the _Cactus Tunnel_
-is a TCP tunnel tool over WebSocket and Browser. It can help you open a TCP
-tunnel to another side of the world through the browser in an extremely
-restricted environment, just like a cactus under the scorching sun to absorb
-nutrients in the endless desert. **If you are a thirsty and honey geek and
-focus on finding new hydration, don't miss it.**
+_Cactus Tunnel_ is a TCP tunnel tool over WebSocket and Browser. It can help
+you open a TCP tunnel to another side of the world through the browser in an
+extremely restricted environment, just like a cactus under the scorching sun
+absorbing nutrients in the endless desert. **If you are a thirsty geek focused
+on finding new hydration, don't miss it.**
 
 <p align="center">
-Like this charming tool? You can give it a star or sponsor me!<br>
+Like this charming tool? Give it a star or sponsor me!<br>
 I will respect your crucial support and say THANK YOU!
 </p>
 
 <p align="center">
-
   <img src="https://user-images.githubusercontent.com/9413601/207098540-229261d7-7055-4578-9d27-792269a7b2b6.png" alt="Tunnel Structure" width="100%"/>
-
 </p>
+
+## Bridge Mode Web UI
+
+In bridge mode, cactus-tunnel opens a live dashboard in your browser that acts
+as the WebSocket relay and displays real-time transfer metrics.
+
+<p align="center">
+  <img src="docs/bridge-mode-webui.png" alt="Bridge Mode Web UI" width="100%"/>
+</p>
+
+## Requirements
+
+- Node.js >= 22
 
 ## Installation
 
-Install the tool from [NPM](https://www.npmjs.com/package/cactus-tunnel):
+Install from [npm](https://www.npmjs.com/package/cactus-tunnel):
 
 ```sh
 npm install -g cactus-tunnel
 ```
 
-## Usages
-
-The help instructions of this tool:
+## Usage
 
 ```sh
-$ cactus-tunnel help
+cactus-tunnel help
+```
 
-Usage: cactus-tunnel help [command]
+```
+Usage: cactus-tunnel [options] [command]
 
 TCP tunnel over websocket and browser
 
@@ -101,9 +111,16 @@ Commands:
   help [command]                      display help for command
 ```
 
+For the full CLI reference including all flags, defaults, and environment
+variables, see [docs/cli.md](docs/cli.md).
+
 ### Tunnel Server
 
-The help instructions of tunnel server:
+```sh
+cactus-tunnel server
+```
+
+Listens on `0.0.0.0:7800` by default.
 
 ```sh
 $ cactus-tunnel help server
@@ -119,16 +136,7 @@ Options:
   --help                    display help for command
 ```
 
-Start a tunnel server:
-
-```sh
-cactus-tunnel server
-
-```
-
 ### Tunnel Client
-
-The help instructions of tunnel client:
 
 ```sh
 $ cactus-tunnel help client
@@ -155,23 +163,21 @@ Options:
 
 ### Request External API Services
 
-Start a tunnel client:
+Start a tunnel client in bridge mode:
 
 ```sh
 cactus-tunnel client -b ws://<your-tunnel-server>:7800 ip-api.com:80
 ```
 
-This command will start a server at address `localhost:7700` in bridge mode,
-and open the tunnel bridge on the web browser.
+This starts a local server at `localhost:7700`, opens the bridge UI in the
+browser, and tunnels traffic to `ip-api.com:80` via the tunnel server.
 
 ```sh
 curl http://localhost:7700/json/8.8.8.8
 ```
 
-When you connect to the port `7700`, it will auto connect to the specified
-tunnel server `<your-tunnel-server>:7800` and connect to target host
-`ip-api.com:80`, you will get your server ip address through [the IP API lookup service](https://ip-api.com/),
-the response content is similar as below:
+When you connect to port `7700`, it auto-connects through the tunnel server
+to `ip-api.com:80`. Response from the [IP API lookup service](https://ip-api.com/):
 
 ```sh
 $ curl http://localhost:7700/json/8.8.8.8 | jq
@@ -195,14 +201,13 @@ $ curl http://localhost:7700/json/8.8.8.8 | jq
 
 ### SSH SOCKS5 Proxy
 
-Start a tunnel client:
+Start a tunnel client in bridge mode:
 
 ```sh
 cactus-tunnel client -b ws://<your-tunnel-server>:7800 <your-ssh-server>:22
 ```
 
-This command will start a server at address `localhost:7700` in bridge mode,
-and open the tunnel bridge on the web browser.
+Open an SSH SOCKS5 proxy through the tunnel:
 
 ```sh
 ssh -p 7700 -D 3128 -C -N <your-username>@localhost
@@ -212,55 +217,56 @@ ssh -p 7700 -D 3128 -C -N <your-username>@localhost
 - `-C`: compress data in the tunnel, save bandwidth
 - `-N`: do not execute remote commands, useful for just forwarding ports
 
-When you connect to the port `7700`, it will auto connect to the specified
-tunnel server `localhost:7800` and connect to target host `<your-ssh-server>:22`
-Now you have an SSH tunnel between your computer and the remote host, in
-this example `<your-ssh-server>:22`.
+Configure your system or browser to use `localhost:3128` as a SOCKS5 proxy.
 
-### Import the package
-
-A simple example:
+### Import the Package
 
 ```js
 import cactusTunnel from "cactus-tunnel";
 
-const options = {
-  port: 1234,
-  hostname: localhost,
-};
-
 const server = new cactusTunnel.Server({
   listen: {
-    port: options.port,
-    hostname: options.hostname,
+    port: 7800,
+    hostname: "0.0.0.0",
   },
   logger: {
-    silent: options.verbose ? false : true,
+    silent: false,
   },
 });
 
-console.info(`server listening at: http://${options.hostname}:${options.port}`);
+console.info("server listening at: http://0.0.0.0:7800");
 ```
 
 ## Development
 
-To set up your environment to develop this tool, run `npm install`.
+Install dependencies:
 
-Your environment is setup just like a normal node project! To test your
-project, run `npm start:cli help`. This shows help instructions of CLI
-tool. You can edit the source code under `src`, `bin`, `test`, etc. like
-normal to test NodeJS project. As you make modifications to the source
-code and configuration files, you need to rerun the command and you
-should see the changes, just like normal.
+```sh
+npm install
+```
+
+Build and run tests:
+
+```sh
+npm test
+```
+
+Run the CLI from the built output:
+
+```sh
+npm run start:cli help
+```
+
+Edit source files under `src/`, `bin/`, and `tests/`. Rebuild with `npm run build` to pick up changes.
 
 ## Contributing
 
-Issues and Pull Requests are greatly appreciated. If you've never
-contributed to an open source project before I'm more than happy to walk
-you through how to create a pull request.
+Issues and Pull Requests are greatly appreciated. If you've never contributed
+to an open source project before I'm more than happy to walk you through how
+to create a pull request.
 
-You can start by [opening an issue](https://github.com/jeffreytse/cactus-tunnel/issues/new)
-describing the problem that you're looking to resolve and we'll go from there.
+Start by [opening an issue](https://github.com/jeffreytse/cactus-tunnel/issues/new)
+describing the problem you'd like to resolve and we'll go from there.
 
 ## Credits
 
@@ -271,6 +277,6 @@ describing the problem that you're looking to resolve and we'll go from there.
 
 ## License
 
-This theme is licensed under the [MIT license](https://opensource.org/licenses/mit-license.php) © JeffreyTse.
+This theme is licensed under the [MIT license](https://opensource.org/licenses/mit-license.php) © Jeffrey Tse.
 
 <!-- External links -->
