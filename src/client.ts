@@ -227,7 +227,7 @@ class Client implements IClient {
       this.meta.bridge.ctrl.close();
     }
 
-    this.meta.bridge.ctrl = ws;
+    this.meta.bridge.ctrl = ws as any;
     this.meta.bridge.origin = req.headers.origin || "";
     this.meta.bridge.status = this.meta.bridge.data ? "waiting" : "preparing";
 
@@ -255,7 +255,7 @@ class Client implements IClient {
       this.meta.bridge.data.close();
     }
 
-    this.meta.bridge.data = ws;
+    this.meta.bridge.data = ws as any;
     this.meta.bridge.status = this.meta.bridge.ctrl ? "waiting" : "preparing";
 
     ws.on("close", () => {
