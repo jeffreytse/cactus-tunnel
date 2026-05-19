@@ -112,7 +112,7 @@ Commands:
 ```
 
 For the full CLI reference including all flags, defaults, and environment
-variables, see [docs/cli.md](docs/cli.md).
+variables, see [docs/manual.md](docs/manual.md).
 
 ### Tunnel Server
 
