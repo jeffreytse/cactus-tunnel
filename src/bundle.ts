@@ -21,6 +21,8 @@ const autoUpdatePageInfo = () => {
   // update tunnel statics
   const sendEl = document.querySelector(".tunnel-send .value");
   const recvEl = document.querySelector(".tunnel-recv .value");
+  const sendSpeedEl = document.querySelector(".tunnel-send-speed");
+  const recvSpeedEl = document.querySelector(".tunnel-recv-speed");
   let lastSend = 0;
   let lastRecv = 0;
   let lastSendSpeed = 0;
@@ -32,9 +34,8 @@ const autoUpdatePageInfo = () => {
       if (lastSend !== bridgeMeta.statics.send || lastSendSpeed !== speed) {
         lastSend = bridgeMeta.statics.send;
         lastSendSpeed = speed;
-        sendEl.innerHTML = `${humanizeBytes(lastSend)} (${humanizeBytes(
-          speed
-        )}/s)`;
+        sendEl.innerHTML = humanizeBytes(lastSend);
+        if (sendSpeedEl) sendSpeedEl.innerHTML = humanizeBytes(speed);
       }
     }
     if (recvEl) {
@@ -43,9 +44,8 @@ const autoUpdatePageInfo = () => {
       if (lastRecv !== bridgeMeta.statics.recv || lastRecvSpeed !== speed) {
         lastRecv = bridgeMeta.statics.recv;
         lastRecvSpeed = speed;
-        recvEl.innerHTML = `${humanizeBytes(lastRecv)} (${humanizeBytes(
-          speed
-        )}/s)`;
+        recvEl.innerHTML = humanizeBytes(lastRecv);
+        if (recvSpeedEl) recvSpeedEl.innerHTML = humanizeBytes(speed);
       }
     }
   }, 1000);

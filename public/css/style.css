@@ -1,0 +1,424 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Non-color tokens (always) ── */
+:root {
+  --font-mono:  'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --radius:     4px;
+  --transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+/* ── Dark tokens: explicit dark + auto fallback (dark OS) ── */
+[data-theme="dark"],
+[data-theme="auto"] {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --surface-2:#1c2128;
+  --border:   #21262d;
+  --text:     #e6edf3;
+  --muted:    #6e7681;
+  --accent:   #3fb950;
+  --amber:    #e3b341;
+  --blue:     #58a6ff;
+}
+
+/* ── Light tokens ── */
+[data-theme="light"] {
+  --bg:       #f6f8fa;
+  --surface:  #ffffff;
+  --surface-2:#eaeef2;
+  --border:   #d0d7de;
+  --text:     #1f2328;
+  --muted:    #636c76;
+  --accent:   #1a7f37;
+  --amber:    #9a6700;
+  --blue:     #0969da;
+}
+
+/* ── Auto: follow OS — light overrides dark fallback above ── */
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    --bg:       #f6f8fa;
+    --surface:  #ffffff;
+    --surface-2:#eaeef2;
+    --border:   #d0d7de;
+    --text:     #1f2328;
+    --muted:    #636c76;
+    --accent:   #1a7f37;
+    --amber:    #9a6700;
+    --blue:     #0969da;
+  }
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  transition: var(--transition);
+  border-top: 2px solid var(--accent);
+}
+
+/* ── Theme toggle ── */
+#theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 99;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition), color 0.18s;
+  padding: 0;
+}
+
+#theme-toggle:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+
+#theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── Main layout ── */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  width: 100%;
+  max-width: 560px;
+  gap: 2.5rem;
+}
+
+/* ── Hero ── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.logo-wrap { display: inline-flex; }
+
+.logo-link { display: inline-block; transition: opacity 0.18s; }
+.logo-link:hover { opacity: 0.75; }
+
+.logo {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  display: block;
+}
+
+h1 {
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  line-height: 1.2;
+  transition: color 0.22s ease;
+}
+
+.tagline {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  transition: color 0.22s ease;
+}
+
+.version-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.2em 0.55em;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+/* ── Status card ── */
+.status-card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.card-header {
+  padding: 0.625rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition);
+}
+
+.card-header-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.card-header-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  transition: color 0.22s ease;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.metric {
+  padding: 1.25rem 1.25rem 1.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metric + .metric { border-left: 1px solid var(--border); }
+
+.metric-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  transition: color 0.22s ease;
+}
+
+.metric-value {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.5em;
+  transition: color 0.22s ease;
+}
+
+.metric-speed {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--muted);
+  transition: color 0.22s ease;
+}
+
+/* ── Speed chart ── */
+.chart-section {
+  border-top: 1px solid var(--border);
+}
+
+.chart-header {
+  padding: 0.5rem 1.25rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: var(--transition);
+}
+
+.chart-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  transition: color 0.18s ease;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.span-btns {
+  display: flex;
+}
+
+.span-btn {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 0.15em 0.5em;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  margin-left: -1px;
+  position: relative;
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.span-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+.span-btn:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+
+.span-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  z-index: 1;
+}
+
+.span-btn:hover:not(.active) {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.chart-legend {
+  display: flex;
+  gap: 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.legend-send { color: var(--accent); }
+.legend-recv { color: var(--blue); }
+
+#speed-chart {
+  display: block;
+  width: 100%;
+  height: 110px;
+}
+
+/* ── Status dot ── */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.tunnel-status[data-status="connected"] .status-dot {
+  background: var(--accent);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+.tunnel-status[data-status="waiting"] .status-dot {
+  background: var(--amber);
+  animation: blink 1.2s step-end infinite;
+}
+
+.tunnel-status[data-status="preparing"] .status-dot {
+  background: var(--blue);
+  animation: blink 0.7s step-end infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.15; }
+}
+
+/* ── Footer ── */
+footer {
+  padding: 1.75rem 1rem 2rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  line-height: 1.75;
+  transition: color 0.22s ease;
+}
+
+footer a { color: var(--blue); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── Responsive ── */
+
+/* Tablet / large mobile: tighten padding */
+@media (max-width: 560px) {
+  main { padding: 2rem 1rem; gap: 2rem; }
+}
+
+/* Small mobile: collapse 3-col grid to single column, row layout per metric */
+@media (max-width: 479px) {
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .metric {
+    display: grid;
+    grid-template-columns: 5rem 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    gap: 0.15rem 0.875rem;
+  }
+
+  .metric + .metric {
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Label spans both rows, vertically centered on the left */
+  .metric-label {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+
+  .metric-value {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: auto;
+  }
+
+  .metric-speed {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* Chart: reduce y-axis label area */
+  #speed-chart { height: 90px; }
+}
+
+/* Extra small: reduce logo, tighten further */
+@media (max-width: 360px) {
+  main { padding: 1.5rem 0.875rem; }
+
+  .logo { width: 64px; height: 64px; }
+
+  h1 { font-size: 1.25rem; }
+
+  .metric { grid-template-columns: 4.5rem 1fr; padding: 0.75rem 0.875rem; }
+}

@@ -1,6 +1,7 @@
 import path from "path";
 import webpack from "webpack";
 import HtmlPlugin from "html-webpack-plugin";
+import pkg from "./package.json";
 
 const config: webpack.Configuration = {
   mode: process.env.NODE_ENV !== "production" ? "development" : "production",
@@ -37,6 +38,9 @@ const config: webpack.Configuration = {
     new HtmlPlugin({
       filename: path.resolve(__dirname, "public/index.html"),
       template: path.resolve(__dirname, "public/index.html"),
+      templateParameters: {
+        APP_VERSION: pkg.version,
+      },
     }),
     // fix "process is not defined" error:
     // (do "npm install process" before running the build)

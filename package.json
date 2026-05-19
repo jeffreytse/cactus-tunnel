@@ -12,6 +12,7 @@
     "src",
     "views",
     "public/img",
+    "public/css/*.css",
     "public/js/*.js",
     "public/*.html",
     "package.json",

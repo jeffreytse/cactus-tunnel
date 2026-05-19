@@ -4,43 +4,86 @@
   <title>Cactus Tunnel Bridge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="./img/cactus-tunnel.png" />
+  <!-- Anti-FOUC: must stay inline to apply theme before first paint -->
+  <script>
+    (function() {
+      var stored = localStorage.getItem('cactus-theme');
+      document.documentElement.dataset.theme = stored || 'auto';
+    })();
+  </script>
+  <link rel="stylesheet" href="./css/style.css" />
 </head>
+<body>
 
-<body class="container">
-
-<header>
-</header>
+<button id="theme-toggle" title="Cycle theme"></button>
 
 <main>
-  <div align="center" style="padding-top: 1em">
-    <a href="https://github.com/jeffreytse/cactus-tunnel">
-      <img alt="cactus-tunnel logo" src="./img/cactus-tunnel.png" width="260">
-    </a>
-
+  <div class="hero">
+    <div class="logo-wrap">
+      <a class="logo-link" href="https://github.com/jeffreytse/cactus-tunnel" aria-label="Cactus Tunnel on GitHub">
+        <img class="logo" alt="" src="./img/cactus-tunnel.png">
+      </a>
+    </div>
     <h1>Cactus Tunnel Bridge</h1>
+    <p class="tagline">🌵 A charming TCP tunnel over WebSocket and Browser.</p>
+    <span class="version-badge">v<%= APP_VERSION %></span>
+  </div>
 
-    <h4>
-      🌵 A charming TCP tunnel over WebSocket and Browser.
-    </h4>
-
-    <div class="tunnel-status">Tunnel Status: <span class="value">n/a</span></div>
-    <div class="tunnel-send">Send: <span class="value">n/a</span></div>
-    <div class="tunnel-recv">Recv: <span class="value">n/a</span></div>
+  <div class="status-card">
+    <div class="card-header">
+      <span class="card-header-dot"></span>
+      <span class="card-header-label">Live Metrics</span>
+    </div>
+    <div class="metrics">
+      <div class="metric tunnel-status">
+        <div class="metric-label">Status</div>
+        <div class="metric-value">
+          <span class="status-dot"></span>
+          <span class="value">n/a</span>
+        </div>
+        <div class="metric-speed"><span id="conn-uptime">—</span></div>
+      </div>
+      <div class="metric tunnel-send">
+        <div class="metric-label">Sent</div>
+        <div class="metric-value"><span class="value">n/a</span></div>
+        <div class="metric-speed">↑ <span class="tunnel-send-speed">—</span>/s</div>
+      </div>
+      <div class="metric tunnel-recv">
+        <div class="metric-label">Received</div>
+        <div class="metric-value"><span class="value">n/a</span></div>
+        <div class="metric-speed">↓ <span class="tunnel-recv-speed">—</span>/s</div>
+      </div>
+    </div>
+    <div class="chart-section">
+      <div class="chart-header">
+        <span class="chart-title">Transfer Speed</span>
+        <span class="chart-controls">
+          <span class="span-btns">
+            <button class="span-btn active" data-span="600">10m</button>
+            <button class="span-btn" data-span="1800">30m</button>
+            <button class="span-btn" data-span="3600">60m</button>
+          </span>
+          <span class="chart-legend">
+            <span class="legend-send">↑ Sent</span>
+            <span class="legend-recv">↓ Received</span>
+          </span>
+        </span>
+      </div>
+      <canvas id="speed-chart"></canvas>
+    </div>
   </div>
 </main>
 
 <footer>
-  <div align="center" style="padding-top: 2em">
-    <sub>
-      ©2022 Project
-      <a href="https://github.com/jeffreytse/cactus-tunnel">Cactus Tunnel</a>.
-      All rights reserved.<br> Built with ❤︎ by
-      <a href="https://github.com/jeffreytse">jeffreytse</a> and
-      <a href="https://github.com/jeffreytse/cactus-tunnel/graphs/contributors">contributors</a>
-    </sub>
-  </div>
+  ©2022 Project
+  <a href="https://github.com/jeffreytse/cactus-tunnel">Cactus Tunnel</a>.
+  All rights reserved.<br>
+  Built with ❤︎ by
+  <a href="https://github.com/jeffreytse">jeffreytse</a> and
+  <a href="https://github.com/jeffreytse/cactus-tunnel/graphs/contributors">contributors</a>
 </footer>
+
+<script src="./js/main.js"></script>
 
 </body>
 </html>
-
