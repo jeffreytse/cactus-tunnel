@@ -13,14 +13,8 @@ import {
   logger as coreLogger,
 } from "./core";
 import { BridgeCtrlData } from "./bridge";
-import {
-  sleep,
-  createLogger,
-  LoggerOptions,
-  assignDeep,
-  formConnStr,
-  fixAddress,
-} from "./utils";
+import { sleep, assignDeep, formConnStr, fixAddress } from "./utils";
+import { createLogger, LoggerOptions } from "./logger";
 import net from "net";
 import open from "open";
 import winston from "winston";

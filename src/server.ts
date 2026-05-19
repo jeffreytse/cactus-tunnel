@@ -3,7 +3,8 @@ import http from "http";
 import pump from "pump";
 import { WebsocketRequestHandler } from "express-ws";
 import WebSocketStream from "websocket-stream";
-import { assignDeep, createLogger, LoggerOptions, parseConnStr } from "./utils";
+import { assignDeep, parseConnStr } from "./utils";
+import { createLogger, LoggerOptions } from "./logger";
 import {
   createWebServer,
   HostAddressInfo,

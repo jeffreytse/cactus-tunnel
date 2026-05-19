@@ -1,8 +1,11 @@
 import WebSocketStream from "websocket-stream";
 import pump from "pump";
-import { createLogger, fixAddress } from "./utils";
+import { fixAddress } from "./utils";
 
-const logger = createLogger({ label: "cactus-tunnel:bridge" });
+const logger = {
+  info: (msg: string) => console.log(`[cactus-tunnel:bridge] INFO ${msg}`),
+  error: (msg: string) => console.error(`[cactus-tunnel:bridge] ERROR ${msg}`),
+};
 
 export type BridgeCtrlData =
   | {

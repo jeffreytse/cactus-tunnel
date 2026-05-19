@@ -3,7 +3,7 @@ import expressWs from "express-ws";
 import http from "http";
 import { createServer, Server } from "net";
 import path from "path";
-import { createLogger } from "./utils";
+import { createLogger } from "./logger";
 import pkg from "../package.json";
 
 export const logger = createLogger({
