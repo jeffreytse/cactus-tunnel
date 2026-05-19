@@ -37,6 +37,18 @@ describe("testing utils functionality", () => {
         c: "c",
       });
     });
+
+    test("should overwrite nested object with null", () => {
+      expect(
+        assignDeep({ a: { b: 1 } } as Record<string, unknown>, { a: null } as Record<string, unknown>)
+      ).toMatchObject({ a: null });
+    });
+
+    test("should not mutate source object", () => {
+      const src = { a: { b: 1 } };
+      assignDeep({} as Record<string, unknown>, src as Record<string, unknown>);
+      expect(src.a.b).toBe(1);
+    });
   });
 
   describe("humanize bytes", () => {
@@ -104,6 +116,12 @@ describe("testing utils functionality", () => {
         hostname,
         port: parseInt(port),
       });
+    });
+
+    test("should return undefined when port is 0", () => {
+      expect(
+        parseConnStr(`${server}/tunnel?target=localhost:0`)
+      ).toBeUndefined();
     });
   });
 });
