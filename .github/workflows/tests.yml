@@ -14,6 +14,13 @@ jobs:
       matrix:
         node-version: [22.x, 24.x, 26.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            chrome_path: /usr/bin/google-chrome-stable
+          - os: windows-latest
+            chrome_path: C:\Program Files\Google\Chrome\Application\chrome.exe
+          - os: macos-latest
+            chrome_path: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
     steps:
       - uses: actions/checkout@v3
@@ -25,7 +32,11 @@ jobs:
       # Use separate run commands so command status handled correctly on Windows
       - name: npm install
         run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
       - name: npm test
         run: npm test
+        env:
+          PUPPETEER_EXECUTABLE_PATH: ${{ matrix.chrome_path }}
       - name: npm run lint
         run: npm run lint

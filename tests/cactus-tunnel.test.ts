@@ -64,7 +64,10 @@ describe("tunnel modes", () => {
     });
 
     test(`should return ${pkg.name} when the tunnel established`, async () => {
-      const browser = await puppeteer.launch({ headless: "new" });
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: process.env.CI ? ["--no-sandbox", "--disable-setuid-sandbox"] : [],
+      });
       try {
         // create tunnel bridge
         const page = await browser.newPage();
@@ -94,6 +97,6 @@ describe("tunnel modes", () => {
       } finally {
         await browser.close();
       }
-    });
+    }, 60000);
   });
 });
