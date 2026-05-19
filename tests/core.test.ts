@@ -3,6 +3,7 @@ import { createTcpServer, createWebServer } from "../src/core";
 import config from "../src/config";
 import pkg from "../package.json";
 import axios from "axios";
+import { fixAddress } from "../src/utils";
 
 describe("core", () => {
   describe("create web server", () => {
@@ -33,7 +34,7 @@ describe("core", () => {
 
     test(`should serve route "/version"`, async () => {
       const res = await axios.get(
-        `http://${config.server.hostname}:${config.server.port}/version`
+        `http://${fixAddress(config.server.hostname)}:${config.server.port}/version`
       );
       expect(res.data.name).toBe(pkg.name);
     });

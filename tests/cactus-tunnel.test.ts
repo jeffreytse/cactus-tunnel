@@ -64,7 +64,7 @@ describe("tunnel modes", () => {
     });
 
     test(`should return ${pkg.name} when the tunnel established`, async () => {
-      const browser = await puppeteer.launch();
+      const browser = await puppeteer.launch({ headless: "new" });
       try {
         // create tunnel bridge
         const page = await browser.newPage();

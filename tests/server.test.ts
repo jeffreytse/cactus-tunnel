@@ -3,6 +3,7 @@ import config from "../src/config";
 import pkg from "../package.json";
 import axios from "axios";
 import Server from "../src/server";
+import { fixAddress } from "../src/utils";
 
 describe("tunnel server functionality", () => {
   describe("server", () => {
@@ -25,7 +26,7 @@ describe("tunnel server functionality", () => {
 
     test(`should return ${pkg.name} when server created`, async () => {
       const res = await axios.get(
-        `http://${config.server.hostname}:${config.server.port}/version`
+        `http://${fixAddress(config.server.hostname)}:${config.server.port}/version`
       );
       expect(res.data.name).toBe(pkg.name);
     });
